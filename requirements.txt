@@ -11,3 +11,4 @@ pytest-cov
 schema
 scipy
 tabulate
+mpl_tools
