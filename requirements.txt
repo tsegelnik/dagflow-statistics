@@ -12,4 +12,4 @@ schema
 scipy
 tabulate
 matplotlib
-mpl_tools
+mpl-tools
