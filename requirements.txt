@@ -1,0 +1,13 @@
+contextlib2
+coverage
+latexdatax
+numba
+numpy
+orderedset
+pandas
+pygraphviz
+pytest
+pytest-cov
+schema
+scipy
+tabulate
