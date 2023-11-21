@@ -1,20 +1,14 @@
 from os.path import join
 
 from matplotlib import pyplot as plt
-from mpl_tools.helpers import (
-    add_colorbar,
-    plot_hist,
-    plot_hist_errorbar,
-    savefig,
-)
 from numpy import allclose, arange, diag, dot, eye, fabs, fill_diagonal, ones
 from numpy.linalg import cholesky, inv
 from pytest import mark
 
 from dagflow.graph import Graph
-from dagflow.plot import plot_auto
 from dagflow.graphviz import savegraph
 from dagflow.lib import Array
+from dagflow.plot import add_colorbar, plot_auto, plot_array_1d, savefig, closefig
 
 from statistics.MonteCarlo import MonteCarlo
 
@@ -158,33 +152,35 @@ class MCTestData:
 
     def plot_hist(self):
         ax = self._create_fig("Check {index}, input {}, scale {scale}")
-        plot_hist(
-            self.hist.outputs[0].dd.axes_edges[0].data,
+        plot_array_1d(
             self.hist.outputs[0].data,
+            edges=self.hist.outputs[0].dd.axes_edges[0].data,
             color="black",
             label="input",
         )
-        plot_hist_errorbar(
-            self.edges,
+        plot_array_1d(
             self.mcoutput.data,
-            yerr="stat",
+            edges=self.edges,
+            yerr=self.err_stat,
             linestyle="--",
             label="output",
         )
         ax.legend()
         self.savefig("hist", self.index)
+        closefig()
 
         ax = self._create_fig("Check diff {index}, input {}, scale {scale}")
-        plot_hist_errorbar(self.edges, self.mcdiff_norm, 1.0, label="normalized uncorrelated")
+        plot_array_1d(self.mcdiff_norm, edges=self.edges, yerr=1.0, label="normalized uncorrelated")
         ax.legend()
         self.savefig("diff_norm", self.index)
 
         ax.set_ylim(-4, 5)
         self.savefig("diff_norm_zoom", self.index)
         ax = self._create_fig("Check diff {index}, input {}, scale {scale}")
-        plot_hist_errorbar(self.edges, self.mcdiff, self.err_stat, label="raw difference")
+        plot_array_1d(self.mcdiff, edges=self.edges, yerr=self.err_stat, label="raw difference")
         ax.legend()
         self.savefig("diff", self.index)
+        closefig()
 
     def _create_fig(self, arg0):
         self.figure()
@@ -204,6 +200,7 @@ class MCTestData:
         ax = plt.gca()
         ax.set_title(title)
         self.savefig(suffix, self.index)
+        closefig()
 
     def plot_mats(self):
         if self.corrmat is None:
