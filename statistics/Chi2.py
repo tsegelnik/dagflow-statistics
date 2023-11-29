@@ -5,7 +5,7 @@ from scipy.linalg import solve_triangular
 from typing import TYPE_CHECKING
 
 from dagflow.exception import TypeFunctionError
-from dagflow.input_extra import MissingInputAddOne
+from dagflow.inputhandler import MissingInputAddOne
 from dagflow.nodes import FunctionNode
 from dagflow.typefunctions import check_inputs_multiplicable_mat
 

@@ -7,7 +7,7 @@ from numpy.random import seed as _seed
 from numpy.typing import NDArray
 
 from dagflow.exception import InitializationError
-from dagflow.input_extra import MissingInputAddEach, MissingInputAddEachN
+from dagflow.inputhandler import MissingInputAddEach, MissingInputAddEachN
 from dagflow.nodes import FunctionNode
 from dagflow.typefunctions import (
     check_input_matrix_or_diag,

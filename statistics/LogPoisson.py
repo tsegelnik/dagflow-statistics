@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Mapping
 
-from dagflow.meta_node import MetaNode
+from dagflow.metanode import MetaNode
 
 from statistics.LogPoissonConst import LogPoissonConst, ModeType
 from statistics.LogPoissonMain import LogPoissonMain

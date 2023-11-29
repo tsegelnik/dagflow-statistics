@@ -5,7 +5,7 @@ from numba import float64, njit, void
 from numpy import double
 from numpy.typing import NDArray
 
-from dagflow.input_extra import MissingInputAddOne
+from dagflow.inputhandler import MissingInputAddOne
 from dagflow.nodes import FunctionNode
 from dagflow.typefunctions import (
     check_inputs_multiplicity,

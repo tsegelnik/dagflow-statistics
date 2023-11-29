@@ -3,7 +3,7 @@ from numba import float64, njit, void
 from numpy import double
 from numpy.typing import NDArray
 
-from dagflow.input_extra import MissingInputAddEachN
+from dagflow.inputhandler import MissingInputAddEachN
 from dagflow.nodes import FunctionNode
 from dagflow.typefunctions import (
     AllPositionals,

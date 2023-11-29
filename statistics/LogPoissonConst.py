@@ -6,7 +6,7 @@ from numpy import double
 from numpy.typing import NDArray
 
 from dagflow.exception import InitializationError
-from dagflow.input_extra import MissingInputAddOne
+from dagflow.inputhandler import MissingInputAddOne
 from dagflow.nodes import FunctionNode
 
 if TYPE_CHECKING:
