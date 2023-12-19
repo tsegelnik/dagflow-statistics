@@ -30,6 +30,6 @@ def test_LogPoisson_01(debug_graph, testname, mode):
         truth = 2.0 * ((theoryArr - dataArr) + dataArr * log(dataArr / theoryArr)).sum()
     else:
         truth = 2.0 * ((theoryArr - dataArr * log(theoryArr)).sum() + gammaln(dataArr + 1).sum())
-    assert allclose(res, truth, rtol=finfo("d").resolution)
+    assert allclose(res, truth, atol=finfo("d").resolution)
 
     savegraph(graph, f"output/{testname}.png")
