@@ -1,13 +1,14 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Tuple
 
 from numpy import double, empty, square, subtract
 from numpy.typing import NDArray
 from scipy.linalg import solve_triangular
 
 from dagflow.exception import TypeFunctionError
-from dagflow.inputhandler import MissingInputAddEachN
+from dagflow.inputhandler import MissingInputAdd
 from dagflow.nodes import FunctionNode
-from dagflow.typefunctions import check_inputs_multiplicable_mat
+from dagflow.node import Input, Output
+from dagflow.typefunctions import AllPositionals, check_inputs_multiplicable_mat
 
 if TYPE_CHECKING:
     from dagflow.input import Input
@@ -26,7 +27,7 @@ def _chi2_1d(
     res = 0.0
     for idata, itheory, ierror in zip(data, theory, errors):
         res += ((itheory - idata) / ierror) ** 2
-    result[0] = res
+    result[0] += res
 
 
 class Chi2(FunctionNode):
@@ -45,17 +46,19 @@ class Chi2(FunctionNode):
         `lower` (bool): True if the errors is lower triangular matrix else upper.
     """
 
-    __slots__ = ("_data", "_theory", "_errors", "_result", "_lower", "_buffer")
+    __slots__ = ("_data_tuple", "_theory_tuple", "_errors_tuple", "_result", "_lower", "_buffer")
 
-    _data: "Input"
-    _theory: "Input"
-    _errors: "Input"
-    _result: "Output"
+    _data: Tuple[Input]
+    _theory: Tuple[Input]
+    _errors: Tuple[Input]
+    _result: Output
     _buffer: NDArray
     _lower: bool
 
     def __init__(self, name, *args, lower: bool = True, **kwargs):
-        kwargs.setdefault("missing_input_handler", MissingInputAddOne())
+        kwargs.setdefault(
+            "missing_input_handler", MissingInputAdd()
+        )
         super().__init__(name, *args, **kwargs)
         self.labels.setdefaults(
             {
@@ -66,9 +69,9 @@ class Chi2(FunctionNode):
             }
         )
         self._lower = lower
-        self._data = self._add_input("data")  # input: 0
-        self._theory = self._add_input("theory")  # input: 1
-        self._errors = self._add_input("errors")  # input: 2
+        self._data_tuple   = (self._add_input("data"),)  # input: 0
+        self._theory_tuple = (self._add_input("theory"),)  # input: 1
+        self._errors_tuple = (self._add_input("errors"),)  # input: 2
         self._result = self._add_output("result")  # output: 0
         self._functions.update({1: self._fcn_1d, 2: self._fcn_2d})
 
@@ -77,23 +80,28 @@ class Chi2(FunctionNode):
         return self._lower
 
     def _fcn_1d(self) -> None:
-        _chi2_1d(
-            self._theory.data,
-            self._data.data,
-            self._errors.data,
-            self._result.data,
-        )
+        ret = self._result.data
+        ret[0] = 0.0
+
+        for (theory, data, errors) in zip(self._theory_tuple, self._data_tuple, self._errors_tuple):
+            _chi2_1d(
+                theory.data,
+                data.data,
+                errors.data,
+                ret
+            )
 
     def _fcn_2d(self) -> None:
-        data = self._data.data
-        theory = self._theory.data
-        errors = self._errors.data
         buffer = self._buffer
-        # errors is triangular decomposition of covariance matrix (L)
-        subtract(theory.data, data.data, out=buffer)
-        solve_triangular(errors.data, buffer, lower=self.lower, overwrite_b=True)
-        square(buffer, out=buffer)
-        self._result.data[0] = buffer.sum()
+        ret = 0.0
+        for (theory, data, errors) in zip(self._theory_tuple, self._data_tuple, self._errors_tuple):
+            # errors is triangular decomposition of covariance matrix (L)
+            subtract(theory.data, data.data, out=buffer)
+            solve_triangular(errors.data, buffer, lower=self.lower, overwrite_b=True)
+            square(buffer, out=buffer)
+            ret += buffer.sum()
+
+        self._result.data[0] = ret
 
     def _typefunc(self) -> None:
         """A output takes this function to determine the dtype and shape"""
@@ -103,9 +111,13 @@ class Chi2(FunctionNode):
             check_inputs_same_shape,
         )
 
-        check_input_dimension(self, ("data", "theory"), 1)
-        check_inputs_same_shape(self, ("data", "theory"))
-        errors = self._errors
+        check_input_dimension(self, slice(0, None, 3), 1)
+        check_input_dimension(self, slice(1, None, 3), 1)
+        check_inputs_same_shape(self, (0, 1))
+        check_inputs_same_shape(self, slice(0, None, 3))
+        check_inputs_same_shape(self, slice(1, None, 3))
+        check_inputs_same_shape(self, slice(2, None, 3))
+        errors = self._errors_tuple[0]
         dim = errors.dd.dim
         if dim == 2:
             check_input_square(self, "errors")
@@ -121,10 +133,10 @@ class Chi2(FunctionNode):
         self.fcn = self._functions[dim]
 
         self._result.dd.shape = (1,)
-        self._result.dd.dtype = self._data.dd.dtype
+        self._result.dd.dtype = self._data_tuple[0].dd.dtype
 
     def _post_allocate(self) -> None:
         # NOTE: buffer is needed only for 2d case
-        if self._errors.dd.dim == 2:
-            datadd = self._data.dd
+        if self._errors_tuple[0].dd.dim == 2:
+            datadd = self._data_tuple[0].dd
             self._buffer = empty(shape=datadd.shape, dtype=datadd.dtype)

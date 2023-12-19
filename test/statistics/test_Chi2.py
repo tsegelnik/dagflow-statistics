@@ -26,6 +26,7 @@ def test_Chi2_01(debug_graph, testname):
         data >> chi2.inputs["data"]
         theory >> chi2.inputs["theory"]
         stat >> chi2.inputs["errors"]
+        # data, theory, stat >> chi2
 
     res = chi2.outputs["result"].data[0]
     truth1 = (((dataArr - theoryArr) / statArr) ** 2).sum()
