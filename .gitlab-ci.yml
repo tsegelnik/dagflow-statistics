@@ -11,7 +11,6 @@ tests:
         - git submodule sync
         - git submodule update --init --recursive --depth=1 -- submodules/dag-flow
         - python3 -m pip install -r requirements.txt
-        - PYTHONPATH="$PYTHONPATH:/builds/dag-computing/dagflow-statistics/submodules/dag-flow"
         - mkdir output
         - coverage run --source=. --omit=submodules/* -m pytest
         - coverage report
