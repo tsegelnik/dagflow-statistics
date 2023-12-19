@@ -1,17 +1,18 @@
 from os.path import join
+from statistics.MonteCarlo import MonteCarlo
 
 from matplotlib import pyplot as plt
 from numpy import allclose, arange, diag, dot, eye, fabs, fill_diagonal, ones
 from numpy.linalg import cholesky, inv
+from numpy.random import seed
 from pytest import mark
 
 from dagflow.graph import Graph
 from dagflow.graphviz import savegraph
 from dagflow.lib import Array
-from dagflow.plot import add_colorbar, plot_auto, plot_array_1d, savefig, closefig
+from dagflow.plot import add_colorbar, closefig, plot_array_1d, plot_auto, savefig
 
-from statistics.MonteCarlo import MonteCarlo
-
+seed(4)
 
 @mark.parametrize("scale", [0.1, 100.0, 10000.0])
 @mark.parametrize(
@@ -35,12 +36,15 @@ def test_mc(mcmode, scale, datanum, debug_graph, testname, tmp_path):
     with Graph(close=True, debug=debug_graph) as graph:
         if datanum == "all":
             mcdata_v = tuple(
-                MCTestData(data, mcmode, index=-i - 1, scale=scale) for i, data in enumerate(data)
+                MCTestData(data, mcmode, index=-i - 1, scale=scale)
+                for i, data in enumerate(data)
             )
         else:
-            mcdata_v = (MCTestData(data[datanum], mcmode, index=datanum + 1, scale=scale),)
+            mcdata_v = (
+                MCTestData(data[datanum], mcmode, index=datanum + 1, scale=scale),
+            )
 
-        toymc = MonteCarlo(name="MonteCarlo", mode=mcmode, seed=4)
+        toymc = MonteCarlo(name="MonteCarlo", mode=mcmode)
         for mcdata in mcdata_v:
             mcdata.inputs >> toymc
 
@@ -116,7 +120,9 @@ class MCTestData:
     def prepare_covmatrix_syst(self):
         self.err_syst = self.syst_unc_rel * self.data
         self.err_syst_sqr = diag(self.err_syst**0.5)
-        self.covmat_syst = dot(dot(self.err_syst_sqr.T, self.corrmat), self.err_syst_sqr)
+        self.covmat_syst = dot(
+            dot(self.err_syst_sqr.T, self.corrmat), self.err_syst_sqr
+        )
 
     def prepare_covmatrix_full(self):
         self.covmat_full = diag(self.err_stat2) + self.covmat_syst
@@ -170,14 +176,21 @@ class MCTestData:
         closefig()
 
         ax = self._create_fig("Check diff {index}, input {}, scale {scale}")
-        plot_array_1d(self.mcdiff_norm, edges=self.edges, yerr=1.0, label="normalized uncorrelated")
+        plot_array_1d(
+            self.mcdiff_norm,
+            edges=self.edges,
+            yerr=1.0,
+            label="normalized uncorrelated",
+        )
         ax.legend()
         self.savefig("diff_norm", self.index)
 
         ax.set_ylim(-4, 5)
         self.savefig("diff_norm_zoom", self.index)
         ax = self._create_fig("Check diff {index}, input {}, scale {scale}")
-        plot_array_1d(self.mcdiff, edges=self.edges, yerr=self.err_stat, label="raw difference")
+        plot_array_1d(
+            self.mcdiff, edges=self.edges, yerr=self.err_stat, label="raw difference"
+        )
         ax.legend()
         self.savefig("diff", self.index)
         closefig()

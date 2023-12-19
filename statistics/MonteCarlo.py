@@ -3,7 +3,6 @@ from typing import Literal, Optional
 from numba import float64, njit, void
 from numpy import add, double, matmul, sqrt
 from numpy.random import normal, poisson
-from numpy.random import seed as _seed
 from numpy.typing import NDArray
 
 from dagflow.exception import InitializationError
@@ -92,7 +91,6 @@ class MonteCarlo(FunctionNode):
         self,
         name,
         mode: ModeType,
-        seed: Optional[int] = None,
         *args,
         **kwargs,
     ):
@@ -116,8 +114,6 @@ class MonteCarlo(FunctionNode):
                 f"mode must be in {MonteCarloModes}, but given {mode}",
                 node=self,
             )
-        if seed is not None:
-            _seed(seed)
         self._functions.update(
             {
                 "Normal": self._fcn_normal,
@@ -135,9 +131,6 @@ class MonteCarlo(FunctionNode):
     def next_sample(self) -> None:
         self.unfreeze()
         self.taint(force=True)
-
-    def set_seed(self, seed: int) -> None:
-        _seed(seed)
 
     def _fcn_covariance_L(self) -> None:
         i = 0
