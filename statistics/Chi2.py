@@ -1,11 +1,11 @@
-from numba import njit, void, float64
+from typing import TYPE_CHECKING
+
 from numpy import double, empty, square, subtract
 from numpy.typing import NDArray
 from scipy.linalg import solve_triangular
-from typing import TYPE_CHECKING
 
 from dagflow.exception import TypeFunctionError
-from dagflow.inputhandler import MissingInputAddOne
+from dagflow.inputhandler import MissingInputAddEachN
 from dagflow.nodes import FunctionNode
 from dagflow.typefunctions import check_inputs_multiplicable_mat
 
@@ -13,20 +13,20 @@ if TYPE_CHECKING:
     from dagflow.input import Input
     from dagflow.output import Output
 
+from numba import njit
 
-@njit(
-    void(float64[:], float64[:], float64[:], float64[:]),
-    cache=True,
-)
+
+@njit(cache=True)
 def _chi2_1d(
     data: NDArray[double],
     theory: NDArray[double],
     errors: NDArray[double],
     result: NDArray[double],
 ) -> None:
-    result[0] = 0.0
-    for i in range(len(data)):
-        result[0] += ((theory[i] - data[i]) / errors[i]) ** 2
+    res = 0.0
+    for idata, itheory, ierror in zip(data, theory, errors):
+        res += ((itheory - idata) / ierror) ** 2
+    result[0] = res
 
 
 class Chi2(FunctionNode):
@@ -101,7 +101,7 @@ class Chi2(FunctionNode):
             check_input_dimension,
             check_input_square,
             check_inputs_same_shape,
-        )  # fmt: skip
+        )
 
         check_input_dimension(self, ("data", "theory"), 1)
         check_inputs_same_shape(self, ("data", "theory"))
