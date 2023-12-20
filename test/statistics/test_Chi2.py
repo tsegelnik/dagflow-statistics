@@ -1,13 +1,14 @@
 #!/usr/bin/env python
-from numpy import allclose, arange, array, diag, matmul, finfo
+from statistics.Chi2 import Chi2
+from statistics.CNPStat import CNPStat
+
+from numpy import allclose, arange, array, diag, finfo, matmul
 from numpy.linalg import cholesky, inv
+from pytest import mark
 
 from dagflow.graph import Graph
 from dagflow.graphviz import savegraph
 from dagflow.lib.Array import Array
-
-from statistics.Chi2 import Chi2
-from statistics.CNPStat import CNPStat
 
 
 def test_Chi2_01(debug_graph, testname):
@@ -23,10 +24,9 @@ def test_Chi2_01(debug_graph, testname):
         theory = Array("theory", theoryArr, mark="Theory")
         stat = Array("staterr", statArr, mark="Stat errors")
         chi2 = Chi2("chi2")
-        data >> chi2.inputs["data"]
-        theory >> chi2.inputs["theory"]
-        stat >> chi2.inputs["errors"]
-        # data, theory, stat >> chi2
+        (data, theory, stat) >> chi2
+
+        chi2.print()
 
     res = chi2.outputs["result"].data[0]
     truth1 = (((dataArr - theoryArr) / statArr) ** 2).sum()
@@ -51,9 +51,9 @@ def test_Chi2_02(debug_graph, testname):
         theory = Array("theory", theoryArr, mark="Theory")
         L = Array("L", Lmat, mark="Stat errors (cholesky)")
         chi2 = Chi2("chi2")
-        data >> chi2.inputs["data"]
-        theory >> chi2.inputs["theory"]
-        L >> chi2.inputs["errors"]
+        data >> chi2
+        theory >> chi2
+        L >> chi2
 
     res = chi2.outputs["result"].data[0]
     truth = (offset**2 / dataArr).sum()
@@ -62,7 +62,8 @@ def test_Chi2_02(debug_graph, testname):
     savegraph(graph, f"output/{testname}.png")
 
 
-def test_Chi2_03(debug_graph, testname):
+@mark.parametrize("duplicate", (False, True))
+def test_Chi2_03(duplicate: bool, debug_graph, testname):
     n = 10
     start = 10
     offset = 1.0
@@ -76,15 +77,16 @@ def test_Chi2_03(debug_graph, testname):
         theory = Array("theory", theoryArr, mark="Theory")
         L = Array("L", Lmat, mark="Stat errors (cholesky)")
         chi2 = Chi2("chi2")
-        data >> chi2.inputs["data"]
-        theory >> chi2.inputs["theory"]
-        L >> chi2.inputs["errors"]
+        (data, theory, L) >> chi2
+        if duplicate:
+            (data, theory, L) >> chi2
     res = chi2.outputs["result"].data[0]
 
+    scale = duplicate and 2.0 or 1.0
     diff = array(dataArr - theoryArr).T
-    truth1 = matmul(diff.T, matmul(inv(covmat), diff))
+    truth1 = scale*matmul(diff.T, matmul(inv(covmat), diff))
     ndiff = matmul(inv(Lmat), diff)
-    truth2 = matmul(ndiff.T, ndiff)
+    truth2 = scale*matmul(ndiff.T, ndiff)
 
     assert allclose(res, truth1, rtol=0, atol=finfo("d").resolution)
     assert allclose(res, truth2, rtol=0, atol=finfo("d").resolution)

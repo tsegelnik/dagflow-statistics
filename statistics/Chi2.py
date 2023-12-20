@@ -5,10 +5,10 @@ from numpy.typing import NDArray
 from scipy.linalg import solve_triangular
 
 from dagflow.exception import TypeFunctionError
-from dagflow.inputhandler import MissingInputAdd
-from dagflow.nodes import FunctionNode
+from dagflow.inputhandler import MissingInputAdd, SequentialFormatter
 from dagflow.node import Input, Output
-from dagflow.typefunctions import AllPositionals, check_inputs_multiplicable_mat
+from dagflow.nodes import FunctionNode
+from dagflow.typefunctions import check_inputs_multiplicable_mat
 
 if TYPE_CHECKING:
     from dagflow.input import Input
@@ -46,7 +46,14 @@ class Chi2(FunctionNode):
         `lower` (bool): True if the errors is lower triangular matrix else upper.
     """
 
-    __slots__ = ("_data_tuple", "_theory_tuple", "_errors_tuple", "_result", "_lower", "_buffer")
+    __slots__ = (
+        "_data_tuple",
+        "_theory_tuple",
+        "_errors_tuple",
+        "_result",
+        "_lower",
+        "_buffer",
+    )
 
     _data: Tuple[Input]
     _theory: Tuple[Input]
@@ -57,7 +64,10 @@ class Chi2(FunctionNode):
 
     def __init__(self, name, *args, lower: bool = True, **kwargs):
         kwargs.setdefault(
-            "missing_input_handler", MissingInputAdd()
+            "missing_input_handler",
+            MissingInputAdd(
+                input_fmt=SequentialFormatter(("data", "theory", "errors"))
+            ),
         )
         super().__init__(name, *args, **kwargs)
         self.labels.setdefaults(
@@ -69,9 +79,9 @@ class Chi2(FunctionNode):
             }
         )
         self._lower = lower
-        self._data_tuple   = (self._add_input("data"),)  # input: 0
-        self._theory_tuple = (self._add_input("theory"),)  # input: 1
-        self._errors_tuple = (self._add_input("errors"),)  # input: 2
+        self._data_tuple = ()  # input: 0
+        self._theory_tuple = ()  # input: 1
+        self._errors_tuple = ()  # input: 2
         self._result = self._add_output("result")  # output: 0
         self._functions.update({1: self._fcn_1d, 2: self._fcn_2d})
 
@@ -83,18 +93,17 @@ class Chi2(FunctionNode):
         ret = self._result.data
         ret[0] = 0.0
 
-        for (theory, data, errors) in zip(self._theory_tuple, self._data_tuple, self._errors_tuple):
-            _chi2_1d(
-                theory.data,
-                data.data,
-                errors.data,
-                ret
-            )
+        for theory, data, errors in zip(
+            self._theory_tuple, self._data_tuple, self._errors_tuple
+        ):
+            _chi2_1d(theory.data, data.data, errors.data, ret)
 
     def _fcn_2d(self) -> None:
         buffer = self._buffer
         ret = 0.0
-        for (theory, data, errors) in zip(self._theory_tuple, self._data_tuple, self._errors_tuple):
+        for theory, data, errors in zip(
+            self._theory_tuple, self._data_tuple, self._errors_tuple
+        ):
             # errors is triangular decomposition of covariance matrix (L)
             subtract(theory.data, data.data, out=buffer)
             solve_triangular(errors.data, buffer, lower=self.lower, overwrite_b=True)
@@ -105,6 +114,10 @@ class Chi2(FunctionNode):
 
     def _typefunc(self) -> None:
         """A output takes this function to determine the dtype and shape"""
+        self._data_tuple = tuple(input for input in self.inputs[::3])  # input: 0
+        self._theory_tuple = tuple(input for input in self.inputs[1::3])  # input: 1
+        self._errors_tuple = tuple(input for input in self.inputs[2::3])  # input: 1
+
         from dagflow.typefunctions import (
             check_input_dimension,
             check_input_square,
