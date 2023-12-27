@@ -7,7 +7,7 @@ from scipy.linalg import solve_triangular
 from dagflow.exception import TypeFunctionError
 from dagflow.inputhandler import MissingInputAdd, SequentialFormatter
 from dagflow.node import Input, Output
-from dagflow.nodes import FunctionNode
+from dagflow.lib import ManyToOneNode
 from dagflow.typefunctions import check_inputs_multiplicable_mat
 
 if TYPE_CHECKING:
@@ -30,7 +30,7 @@ def _chi2_1d(
     result[0] += res
 
 
-class Chi2(FunctionNode):
+class Chi2(ManyToOneNode):
     r"""
     $\Chi^{2}$ node
 
@@ -69,7 +69,7 @@ class Chi2(FunctionNode):
                 input_fmt=SequentialFormatter(("data", "theory", "errors"))
             ),
         )
-        super().__init__(name, *args, **kwargs)
+        super().__init__(name, *args, output_name="result", **kwargs)
         self.labels.setdefaults(
             {
                 "text": r"$\Chi^{2}$",
@@ -82,7 +82,7 @@ class Chi2(FunctionNode):
         self._data_tuple = ()  # input: 0
         self._theory_tuple = ()  # input: 1
         self._errors_tuple = ()  # input: 2
-        self._result = self._add_output("result")  # output: 0
+        self._result = self.outputs[0]
         self._functions.update({1: self._fcn_1d, 2: self._fcn_2d})
 
     @property
@@ -106,7 +106,9 @@ class Chi2(FunctionNode):
         ):
             # errors is triangular decomposition of covariance matrix (L)
             subtract(theory.data, data.data, out=buffer)
-            solve_triangular(errors.data, buffer, lower=self.matrix_is_lower, overwrite_b=True)
+            solve_triangular(
+                errors.data, buffer, lower=self.matrix_is_lower, overwrite_b=True
+            )
             square(buffer, out=buffer)
             ret += buffer.sum()
 
@@ -153,4 +155,3 @@ class Chi2(FunctionNode):
         if self._errors_tuple[0].dd.dim == 2:
             datadd = self._data_tuple[0].dd
             self._buffer = empty(shape=datadd.shape, dtype=datadd.dtype)
-
