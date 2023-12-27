@@ -43,7 +43,7 @@ class Chi2(FunctionNode):
         `0` or `result`: the resulting array with only one element.
 
     extra arguments:
-        `lower` (bool): True if the errors is lower triangular matrix else upper.
+        `matrix_is_lower` (bool): True if the errors is lower triangular matrix else upper.
     """
 
     __slots__ = (
@@ -51,7 +51,7 @@ class Chi2(FunctionNode):
         "_theory_tuple",
         "_errors_tuple",
         "_result",
-        "_lower",
+        "_matrix_is_lower",
         "_buffer",
     )
 
@@ -60,9 +60,9 @@ class Chi2(FunctionNode):
     _errors: Tuple[Input]
     _result: Output
     _buffer: NDArray
-    _lower: bool
+    _matrix_is_lower: bool
 
-    def __init__(self, name, *args, lower: bool = True, **kwargs):
+    def __init__(self, name, *args, matrix_is_lower: bool = True, **kwargs):
         kwargs.setdefault(
             "missing_input_handler",
             MissingInputAdd(
@@ -78,7 +78,7 @@ class Chi2(FunctionNode):
                 "axis": r"$\Chi^{2}$",
             }
         )
-        self._lower = lower
+        self._matrix_is_lower = matrix_is_lower
         self._data_tuple = ()  # input: 0
         self._theory_tuple = ()  # input: 1
         self._errors_tuple = ()  # input: 2
@@ -86,8 +86,8 @@ class Chi2(FunctionNode):
         self._functions.update({1: self._fcn_1d, 2: self._fcn_2d})
 
     @property
-    def lower(self) -> bool:
-        return self._lower
+    def matrix_is_lower(self) -> bool:
+        return self._matrix_is_lower
 
     def _fcn_1d(self) -> None:
         ret = self._result.data
@@ -106,7 +106,7 @@ class Chi2(FunctionNode):
         ):
             # errors is triangular decomposition of covariance matrix (L)
             subtract(theory.data, data.data, out=buffer)
-            solve_triangular(errors.data, buffer, lower=self.lower, overwrite_b=True)
+            solve_triangular(errors.data, buffer, lower=self.matrix_is_lower, overwrite_b=True)
             square(buffer, out=buffer)
             ret += buffer.sum()
 
@@ -153,3 +153,4 @@ class Chi2(FunctionNode):
         if self._errors_tuple[0].dd.dim == 2:
             datadd = self._data_tuple[0].dd
             self._buffer = empty(shape=datadd.shape, dtype=datadd.dtype)
+
