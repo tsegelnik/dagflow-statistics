@@ -63,12 +63,6 @@ class Chi2(ManyToOneNode):
     _matrix_is_lower: bool
 
     def __init__(self, name, *args, matrix_is_lower: bool = True, **kwargs):
-        kwargs.setdefault(
-            "missing_input_handler",
-            MissingInputAdd(
-                input_fmt=SequentialFormatter(("data", "theory", "errors"))
-            ),
-        )
         super().__init__(name, *args, output_name="result", **kwargs)
         self.labels.setdefaults(
             {
@@ -84,6 +78,10 @@ class Chi2(ManyToOneNode):
         self._errors_tuple = ()  # input: 2
         self._result = self.outputs[0]
         self._functions.update({1: self._fcn_1d, 2: self._fcn_2d})
+
+    @staticmethod
+    def _input_names() -> Tuple[str,...]:
+        return "data", "theory", "errors"
 
     @property
     def matrix_is_lower(self) -> bool:
