@@ -105,8 +105,7 @@ def test_Chi2CNPStat_v01(debug_graph, testname):
         data = Array("data", dataa, mark="Data")
         theory = Array("theory", theorya, mark="Theory")
         cnp = CNPStat(name="cnp", label="CNP stat. uncertainty")
-        data >> cnp
-        theory >> cnp
+        (data, theory) >> cnp
         chi2 = Chi2(name="chi2", label="chi2")
         data >> chi2("data")
         theory >> chi2("theory")
