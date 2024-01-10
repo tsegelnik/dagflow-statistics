@@ -15,13 +15,13 @@ from dagflow.typefunctions import (
     copy_from_input_to_output,
 )
 
-MonteCarloModes = {"Asimov", "Normal", "NormalStats", "Poisson", "Covariance"}
+MonteCarloModes = {"asimov", "normal", "normalstats", "poisson", "covariance"}
 ModeType = Literal[MonteCarloModes]
 
-MonteCarloModes1 = {"Asimov", "NormalStats", "Poisson"}
+MonteCarloModes1 = {"asimov", "normalstats", "poisson"}
 ModeType1 = Literal[MonteCarloModes1]
 
-MonteCarloModes2 = {"Normal", "Covariance"}
+MonteCarloModes2 = {"normal", "covariance"}
 ModeType2 = Literal[MonteCarloModes2]
 
 
@@ -83,18 +83,18 @@ class MonteCarlo(BlockToOneNode):
 
     inputs:
         `i`: average model vector
-        `i+1`: model uncertainties vector (sigma); *only for `Normal` and `Covariance`*
+        `i+1`: model uncertainties vector (sigma); *only for `normal` and `covariance`*
 
     outputs:
         `i`: generated sample
 
     extra arguments:
         `mode`:
-            * `Asimov`: store input data without fluctuations
-            * `Normal`: normal distribution without correlations (2 inputs)
-            * `NormalStats`: normal distribution without correlations (1 input)
-            * `Poisson`: uses Poisson distribution
-            * `Covariance`: multivariate normal distribution using L-decomposition of the covariance matrix
+            * `asimov`: store input data without fluctuations
+            * `normal`: normal distribution without correlations (2 inputs)
+            * `normalstats`: normal distribution without correlations (1 input)
+            * `poisson`: uses Poisson distribution
+            * `covariance`: multivariate normal distribution using L-decomposition of the covariance matrix
     """
 
     __slots__ = ("_mode",)
@@ -107,7 +107,7 @@ class MonteCarlo(BlockToOneNode):
         if mode in MonteCarloModes1:
             return MonteCarlo1(name, mode, *args, _baseclass=False, **kwargs)
         elif mode in MonteCarloModes2:
-            return MonteCarlo2(name, mode, *args, _baseclass=False,  **kwargs)
+            return MonteCarlo2(name, mode, *args, _baseclass=False, **kwargs)
 
         raise RuntimeError(f"Invalid montecarlo mode {mode}. Expect: {MonteCarloModes}")
 
@@ -132,9 +132,9 @@ class MonteCarlo1(MonteCarlo):
 
     extra arguments:
         `mode`:
-            * `Asimov`: store input data without fluctuations
-            * `NormalStats`: normal distribution without correlations (1 input)
-            * `Poisson`: uses Poisson distribution
+            * `asimov`: store input data without fluctuations
+            * `normalstats`: normal distribution without correlations (1 input)
+            * `poisson`: uses Poisson distribution
     """
 
     __slots__ = ()
@@ -148,30 +148,34 @@ class MonteCarlo1(MonteCarlo):
         **kwargs,
     ):
         if not mode in MonteCarloModes1:
-            raise RuntimeError(f"Invalid montecarlo mode {mode}. Expect: {MonteCarloModes1}")
+            raise RuntimeError(
+                f"Invalid montecarlo mode {mode}. Expect: {MonteCarloModes1}"
+            )
 
         self._mode = mode
         super().__init__(name, *args, **kwargs)
         # TODO: set lables
-        # self.labels.setdefaults(
-        #    {
-        #        "text": "MonteCarlo sample",
-        #        "plottitle": "MonteCarlo sample",
-        #        "latex": "MonteCarlo sample",
-        #        "axis": "MonteCarlo sample",
-        #    }
-        # )
+
+        self.labels.setdefaults(
+            {
+                "mark": f"MC:{mode[0].upper()}",
+                #        "text": "MonteCarlo sample",
+                #        "plottitle": "MonteCarlo sample",
+                #        "latex": "MonteCarlo sample",
+                #        "axis": "MonteCarlo sample",
+            }
+        )
         self._functions.update(
             {
-                "Asimov": self._fcn_asimov,
-                "NormalStats": self._fcn_normal_stats,
-                "Poisson": self._fcn_poisson,
+                "asimov": self._fcn_asimov,
+                "normalstats": self._fcn_normal_stats,
+                "poisson": self._fcn_poisson,
             }
         )
 
     @staticmethod
     def _input_names() -> Tuple[str, ...]:
-        return "data",
+        return ("data",)
 
     def _fcn_asimov(self) -> None:
         for _input, _output in zip(self.inputs.iter_data(), self.outputs.iter_data()):
@@ -194,21 +198,22 @@ class MonteCarlo1(MonteCarlo):
 
         self.fcn = self._functions[self.mode]
 
+
 class MonteCarlo2(MonteCarlo):
     r"""
     Generates a random sample distributed according different modes.
 
     inputs:
         `i`: average model vector
-        `i+1`: model uncertainties vector (sigma); *only for `Normal` and `Covariance`*
+        `i+1`: model uncertainties vector (sigma); *only for `normal` and `covariance`*
 
     outputs:
         `i`: generated sample
 
     extra arguments:
         `mode`:
-            * `Normal`: normal distribution without correlations (2 inputs)
-            * `Covariance`: multivariate normal distribution using L-decomposition of the covariance matrix
+            * `normal`: normal distribution without correlations (2 inputs)
+            * `covariance`: multivariate normal distribution using L-decomposition of the covariance matrix
     """
 
     def __init__(
@@ -220,19 +225,22 @@ class MonteCarlo2(MonteCarlo):
         **kwargs,
     ):
         if not mode in MonteCarloModes2:
-            raise RuntimeError(f"Invalid montecarlo mode {mode}. Expect: {MonteCarloModes2}")
+            raise RuntimeError(
+                f"Invalid montecarlo mode {mode}. Expect: {MonteCarloModes2}"
+            )
 
         self._mode = mode
         super().__init__(name, *args, **kwargs)
         # TODO: set lables
-        # self.labels.setdefaults(
-        #    {
-        #        "text": "MonteCarlo sample",
-        #        "plottitle": "MonteCarlo sample",
-        #        "latex": "MonteCarlo sample",
-        #        "axis": "MonteCarlo sample",
-        #    }
-        # )
+        self.labels.setdefaults(
+            {
+                "mark": f"MC:{mode[0].upper()}",
+                #        "text": "MonteCarlo sample",
+                #        "plottitle": "MonteCarlo sample",
+                #        "latex": "MonteCarlo sample",
+                #        "axis": "MonteCarlo sample",
+            }
+        )
         if mode not in MonteCarloModes:
             raise InitializationError(
                 f"mode must be in {MonteCarloModes}, but given {mode}",
@@ -240,8 +248,8 @@ class MonteCarlo2(MonteCarlo):
             )
         self._functions.update(
             {
-                "Normal": self._fcn_normal,
-                "Covariance": self._fcn_covariance_L,
+                "normal": self._fcn_normal,
+                "covariance": self._fcn_covariance_L,
             }
         )
 
@@ -271,7 +279,7 @@ class MonteCarlo2(MonteCarlo):
         n = self.inputs.len_pos()
         check_outputs_number(self, n // 2)
 
-        if self.mode == "Covariance":
+        if self.mode == "covariance":
             check_input_matrix_or_diag(self, slice(1, n, 2), check_square=True)
 
         for i in range(n // 2):
@@ -279,4 +287,3 @@ class MonteCarlo2(MonteCarlo):
             copy_from_input_to_output(self, 2 * i, i)
 
         self.fcn = self._functions[self.mode]
-

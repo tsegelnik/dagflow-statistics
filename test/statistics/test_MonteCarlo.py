@@ -12,17 +12,17 @@ from dagflow.graphviz import savegraph
 from dagflow.lib import Array
 from dagflow.plot import add_colorbar, closefig, plot_array_1d, plot_auto, savefig
 
-seed(4)
+seed(6)
 
 @mark.parametrize("scale", [0.1, 100.0, 10000.0])
 @mark.parametrize(
     "mcmode",
     [
-        "Asimov",
-        "Poisson",
-        "NormalStats",
-        "Normal",
-        "Covariance",
+        "asimov",
+        "poisson",
+        "normalstats",
+        "normal",
+        "covariance",
     ],
 )
 @mark.parametrize("datanum", [0, 1, 2, "all"])
@@ -95,17 +95,17 @@ class MCTestData:
         edges = Array("edges", self.edges).outputs[0]
         self.hist = Array("hist", self.data, edges=[edges])
 
-        if mctype == "Covariance":
+        if mctype == "covariance":
             self.prepare_corrmatrix()
             self.prepare_covmatrix_syst()
             self.prepare_covmatrix_full()
         self.prepare_inputs()
 
     def prepare_inputs(self):
-        if self.mctype in ("Normal", "CovarianceDiag"):
+        if self.mctype == "normal":
             self.input_err = Array("errors", self.err_stat)
             self.inputs = (self.hist, self.input_err)
-        elif self.mctype == "Covariance":
+        elif self.mctype == "covariance":
             self.inputs = (self.hist, self.input_L)
         else:
             self.inputs = (self.hist,)
@@ -227,7 +227,7 @@ class MCTestData:
         self.matshow(self.covmat_L, "Covariance matrix decomposed: L", "covmat_L")
 
     def check_stats(self):
-        if self.mctype == "Asimov":
+        if self.mctype == "asimov":
             assert (self.mcdiff == 0.0).all()
         else:
             self._check_stats()
@@ -237,7 +237,7 @@ class MCTestData:
             assert allclose(cm_again, self.covmat_full, atol=1.0e-9, rtol=0)
 
     def _check_stats(self):
-        if self.mctype != "Poisson":
+        if self.mctype != "poisson":
             assert (self.mcdiff != 0.0).all()
 
         mcdiff_abs = fabs(self.mcdiff_norm)
@@ -274,9 +274,9 @@ class MCTestData:
         self.second_data = mcobject.outputs[output_index].data.copy()
         self.mcdiff_nextSample = self.first_data - self.second_data
 
-        if self.mctype == "Asimov":
+        if self.mctype == "asimov":
             assert (self.mcdiff_nextSample == 0).all()
-        elif self.mctype == "Poisson":
+        elif self.mctype == "poisson":
             scale = self.scale
             threshold = self.PoissonThreshold[scale][threshold_index]
             assert (self.mcdiff_nextSample != 0).sum() >= threshold
