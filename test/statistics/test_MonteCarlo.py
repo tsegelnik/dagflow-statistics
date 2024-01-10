@@ -187,6 +187,8 @@ class MCTestData:
 
         ax.set_ylim(-4, 5)
         self.savefig("diff_norm_zoom", self.index)
+        closefig()
+
         ax = self._create_fig("Check diff {index}, input {}, scale {scale}")
         plot_array_1d(
             self.mcdiff, edges=self.edges, yerr=self.err_stat, label="raw difference"

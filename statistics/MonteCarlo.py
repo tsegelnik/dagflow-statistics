@@ -1,4 +1,4 @@
-from typing import Literal, Optional, Tuple
+from typing import Literal, Tuple
 
 from numba import float64, njit, void
 from numpy import add, double, matmul, sqrt
@@ -6,7 +6,7 @@ from numpy.random import normal, poisson
 from numpy.typing import NDArray
 
 from dagflow.exception import InitializationError
-from dagflow.lib import ManyToOneNode
+from dagflow.lib import BlockToOneNode
 from dagflow.typefunctions import (
     check_input_matrix_or_diag,
     check_inputs_multiplicable_mat,
@@ -77,7 +77,7 @@ def _poisson(mean: NDArray[double], result: NDArray[double]):
         result[i] = poisson(mean[i])
 
 
-class MonteCarlo(ManyToOneNode):
+class MonteCarlo(BlockToOneNode):
     r"""
     Generates a random sample distributed according different modes.
 
