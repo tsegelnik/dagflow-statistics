@@ -50,6 +50,7 @@ class CNPStat(ManyToOneNode):
                 "plottitle": r"CNP stat. uncertainty",
                 "latex": r"CNP stat. uncertainty",
                 "axis": r"CNP stat. uncertainty",
+                "mark": r"σ(CNP)",
             }
         )
 

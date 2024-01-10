@@ -64,6 +64,7 @@ class Chi2(ManyToOneNode):
                 "plottitle": r"$\Chi^{2}$",
                 "latex": r"$\Chi^{2}$",
                 "axis": r"$\Chi^{2}$",
+                "mark": r"χ²",
             }
         )
         self._matrix_is_lower = matrix_is_lower

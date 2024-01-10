@@ -1,5 +1,5 @@
 from math import lgamma, log
-from typing import Literal, TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from numba import float64, njit, void
 from numpy import double
@@ -59,14 +59,15 @@ class LogPoissonConst(FunctionNode):
         kwargs.setdefault("missing_input_handler", MissingInputAddOne())
         super().__init__(name, *args, **kwargs)
         # TODO: set labels
-        # self.labels.setdefaults(
-        #    {
-        #        "text": "",
-        #        "plottitle": "",
-        #        "latex": "",
-        #        "axis": "",
-        #    }
-        # )
+        self.labels.setdefaults(
+            {
+                "mark": "lnP (data)"
+                #        "text": "",
+                #        "plottitle": "",
+                #        "latex": "",
+                #        "axis": "",
+            }
+        )
         if mode not in LogPoissonModes:
             raise InitializationError(
                 f"mode must be in {LogPoissonModes}, but given {mode}",
@@ -75,7 +76,9 @@ class LogPoissonConst(FunctionNode):
         self._mode = mode
         self._data = self._add_input("data")  # input: 0
         self._const = self._add_output("const")  # output: 0
-        self._functions.update({"poisson_ratio": self._fcn_poisson_ratio, "poisson": self._fcn_poisson})
+        self._functions.update(
+            {"poisson_ratio": self._fcn_poisson_ratio, "poisson": self._fcn_poisson}
+        )
 
     @property
     def mode(self) -> ModeType:
