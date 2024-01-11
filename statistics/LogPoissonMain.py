@@ -7,10 +7,7 @@ from numpy.typing import NDArray
 
 from dagflow.inputhandler import MissingInputAddOne
 from dagflow.nodes import FunctionNode
-from dagflow.typefunctions import (
-    check_inputs_multiplicity,
-    check_inputs_same_shape,
-)
+from dagflow.typefunctions import check_inputs_multiplicity, check_inputs_same_shape
 
 if TYPE_CHECKING:
     from dagflow.input import Input
@@ -57,14 +54,15 @@ class LogPoissonMain(FunctionNode):
         kwargs.setdefault("missing_input_handler", MissingInputAddOne())
         super().__init__(name, *args, **kwargs)
         # TODO: set labels
-        # self.labels.setdefaults(
-        #    {
-        #        "text": "",
-        #        "plottitle": "",
-        #        "latex": "",
-        #        "axis": "",
-        #    }
-        # )
+        self.labels.setdefaults(
+            {
+                "mark": "lnP"
+                #        "text": "",
+                #        "plottitle": "",
+                #        "latex": "",
+                #        "axis": "",
+            }
+        )
         self._theory = self._add_input("theory")  # input: 0
         self._data = self._add_input("data")  # input: 1
         self._const = self._add_input("const", positional=False)  # input

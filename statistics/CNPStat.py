@@ -1,16 +1,17 @@
 from math import sqrt
+from typing import Tuple
+
 from numba import float64, njit, void
 from numpy import double
 from numpy.typing import NDArray
 
-from dagflow.inputhandler import MissingInputAddEachN
-from dagflow.nodes import FunctionNode
+from dagflow.lib.ManyToOneNode import ManyToOneNode
 from dagflow.typefunctions import (
     AllPositionals,
     check_input_dimension,
-    copy_from_input_to_output,
-    check_inputs_same_shape,
     check_inputs_multiplicity,
+    check_inputs_same_shape,
+    copy_from_input_to_output,
 )
 
 
@@ -25,7 +26,7 @@ def _cnp(
         result[i] = coeff / sqrt(1.0 / data[i] + 2.0 / theory[i])
 
 
-class CNPStat(FunctionNode):
+class CNPStat(ManyToOneNode):
     r"""
     Combined Neyman–Pearson statistic uncertainty:
         errors = sqrt(3) / sqrt(1/dataᵢ+2/theoryᵢ), so if we connect it to `Chi2` node we get
@@ -42,7 +43,6 @@ class CNPStat(FunctionNode):
     """
 
     def __init__(self, name, *args, **kwargs):
-        kwargs.setdefault("missing_input_handler", MissingInputAddEachN(2))
         super().__init__(name, *args, **kwargs)
         self.labels.setdefaults(
             {
@@ -50,8 +50,13 @@ class CNPStat(FunctionNode):
                 "plottitle": r"CNP stat. uncertainty",
                 "latex": r"CNP stat. uncertainty",
                 "axis": r"CNP stat. uncertainty",
+                "mark": r"σ(CNP)",
             }
         )
+
+    @staticmethod
+    def _input_names() -> Tuple[str, ...]:
+        return "data", "theory"
 
     def _fcn(self) -> None:
         i = 0

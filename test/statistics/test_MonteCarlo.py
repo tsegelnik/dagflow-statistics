@@ -1,27 +1,28 @@
 from os.path import join
+from statistics.MonteCarlo import MonteCarlo
 
 from matplotlib import pyplot as plt
 from numpy import allclose, arange, diag, dot, eye, fabs, fill_diagonal, ones
 from numpy.linalg import cholesky, inv
+from numpy.random import seed
 from pytest import mark
 
 from dagflow.graph import Graph
 from dagflow.graphviz import savegraph
 from dagflow.lib import Array
-from dagflow.plot import add_colorbar, plot_auto, plot_array_1d, savefig, closefig
+from dagflow.plot import add_colorbar, closefig, plot_array_1d, plot_auto, savefig
 
-from statistics.MonteCarlo import MonteCarlo
-
+seed(6)
 
 @mark.parametrize("scale", [0.1, 100.0, 10000.0])
 @mark.parametrize(
     "mcmode",
     [
-        "Asimov",
-        "Poisson",
-        "NormalStats",
-        "Normal",
-        "Covariance",
+        "asimov",
+        "poisson",
+        "normalstats",
+        "normal",
+        "covariance",
     ],
 )
 @mark.parametrize("datanum", [0, 1, 2, "all"])
@@ -35,12 +36,15 @@ def test_mc(mcmode, scale, datanum, debug_graph, testname, tmp_path):
     with Graph(close=True, debug=debug_graph) as graph:
         if datanum == "all":
             mcdata_v = tuple(
-                MCTestData(data, mcmode, index=-i - 1, scale=scale) for i, data in enumerate(data)
+                MCTestData(data, mcmode, index=-i - 1, scale=scale)
+                for i, data in enumerate(data)
             )
         else:
-            mcdata_v = (MCTestData(data[datanum], mcmode, index=datanum + 1, scale=scale),)
+            mcdata_v = (
+                MCTestData(data[datanum], mcmode, index=datanum + 1, scale=scale),
+            )
 
-        toymc = MonteCarlo(name="MonteCarlo", mode=mcmode, seed=4)
+        toymc = MonteCarlo(name="MonteCarlo", mode=mcmode)
         for mcdata in mcdata_v:
             mcdata.inputs >> toymc
 
@@ -91,17 +95,17 @@ class MCTestData:
         edges = Array("edges", self.edges).outputs[0]
         self.hist = Array("hist", self.data, edges=[edges])
 
-        if mctype == "Covariance":
+        if mctype == "covariance":
             self.prepare_corrmatrix()
             self.prepare_covmatrix_syst()
             self.prepare_covmatrix_full()
         self.prepare_inputs()
 
     def prepare_inputs(self):
-        if self.mctype in ("Normal", "CovarianceDiag"):
+        if self.mctype == "normal":
             self.input_err = Array("errors", self.err_stat)
             self.inputs = (self.hist, self.input_err)
-        elif self.mctype == "Covariance":
+        elif self.mctype == "covariance":
             self.inputs = (self.hist, self.input_L)
         else:
             self.inputs = (self.hist,)
@@ -116,7 +120,9 @@ class MCTestData:
     def prepare_covmatrix_syst(self):
         self.err_syst = self.syst_unc_rel * self.data
         self.err_syst_sqr = diag(self.err_syst**0.5)
-        self.covmat_syst = dot(dot(self.err_syst_sqr.T, self.corrmat), self.err_syst_sqr)
+        self.covmat_syst = dot(
+            dot(self.err_syst_sqr.T, self.corrmat), self.err_syst_sqr
+        )
 
     def prepare_covmatrix_full(self):
         self.covmat_full = diag(self.err_stat2) + self.covmat_syst
@@ -170,14 +176,23 @@ class MCTestData:
         closefig()
 
         ax = self._create_fig("Check diff {index}, input {}, scale {scale}")
-        plot_array_1d(self.mcdiff_norm, edges=self.edges, yerr=1.0, label="normalized uncorrelated")
+        plot_array_1d(
+            self.mcdiff_norm,
+            edges=self.edges,
+            yerr=1.0,
+            label="normalized uncorrelated",
+        )
         ax.legend()
         self.savefig("diff_norm", self.index)
 
         ax.set_ylim(-4, 5)
         self.savefig("diff_norm_zoom", self.index)
+        closefig()
+
         ax = self._create_fig("Check diff {index}, input {}, scale {scale}")
-        plot_array_1d(self.mcdiff, edges=self.edges, yerr=self.err_stat, label="raw difference")
+        plot_array_1d(
+            self.mcdiff, edges=self.edges, yerr=self.err_stat, label="raw difference"
+        )
         ax.legend()
         self.savefig("diff", self.index)
         closefig()
@@ -212,7 +227,7 @@ class MCTestData:
         self.matshow(self.covmat_L, "Covariance matrix decomposed: L", "covmat_L")
 
     def check_stats(self):
-        if self.mctype == "Asimov":
+        if self.mctype == "asimov":
             assert (self.mcdiff == 0.0).all()
         else:
             self._check_stats()
@@ -222,7 +237,7 @@ class MCTestData:
             assert allclose(cm_again, self.covmat_full, atol=1.0e-9, rtol=0)
 
     def _check_stats(self):
-        if self.mctype != "Poisson":
+        if self.mctype != "poisson":
             assert (self.mcdiff != 0.0).all()
 
         mcdiff_abs = fabs(self.mcdiff_norm)
@@ -259,9 +274,9 @@ class MCTestData:
         self.second_data = mcobject.outputs[output_index].data.copy()
         self.mcdiff_nextSample = self.first_data - self.second_data
 
-        if self.mctype == "Asimov":
+        if self.mctype == "asimov":
             assert (self.mcdiff_nextSample == 0).all()
-        elif self.mctype == "Poisson":
+        elif self.mctype == "poisson":
             scale = self.scale
             threshold = self.PoissonThreshold[scale][threshold_index]
             assert (self.mcdiff_nextSample != 0).sum() >= threshold
