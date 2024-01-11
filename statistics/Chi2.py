@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import TYPE_CHECKING, Tuple
 
 from numba import njit
 from numpy import double, empty, square, subtract
@@ -7,8 +7,9 @@ from scipy.linalg import solve_triangular
 
 from dagflow.exception import TypeFunctionError
 from dagflow.lib import ManyToOneNode
-from dagflow.node import Input, Output
-from dagflow.typefunctions import check_inputs_multiplicable_mat
+
+if TYPE_CHECKING:
+    from dagflow.node import Input, Output
 
 
 @njit(cache=True)
@@ -49,10 +50,10 @@ class Chi2(ManyToOneNode):
         "_buffer",
     )
 
-    _data_tuple: Tuple[Input]
-    _theory_tuple: Tuple[Input]
-    _errors_tuple: Tuple[Input]
-    _result: Output
+    _data_tuple: Tuple["Input"]
+    _theory_tuple: Tuple["Input"]
+    _errors_tuple: Tuple["Input"]
+    _result: "Output"
     _buffer: NDArray
     _matrix_is_lower: bool
 
@@ -72,7 +73,7 @@ class Chi2(ManyToOneNode):
         self._theory_tuple = ()  # input: 1
         self._errors_tuple = ()  # input: 2
         self._result = self.outputs[0]
-        self._functions.update({1: self._fcn_1d, 2: self._fcn_2d})
+        self._functions.update({"1d": self._fcn_1d, "2d": self._fcn_2d})
 
     @staticmethod
     def _input_names() -> Tuple[str, ...]:
@@ -112,14 +113,15 @@ class Chi2(ManyToOneNode):
         from dagflow.typefunctions import (
             check_input_dimension,
             check_input_square,
+            check_inputs_multiplicable_mat,
             check_inputs_multiplicity,
             check_inputs_same_shape,
         )
 
         check_inputs_multiplicity(self, 3)
-        self._data_tuple = tuple(input for input in self.inputs[::3])  # input: 0
-        self._theory_tuple = tuple(input for input in self.inputs[1::3])  # input: 1
-        self._errors_tuple = tuple(input for input in self.inputs[2::3])  # input: 1
+        self._data_tuple = tuple(self.inputs[::3])  # input: 0
+        self._theory_tuple = tuple(self.inputs[1::3])  # input: 1
+        self._errors_tuple = tuple(self.inputs[2::3])  # input: 1
 
         check_input_dimension(self, slice(0, None, 3), 1)
         check_input_dimension(self, slice(1, None, 3), 1)
@@ -140,7 +142,7 @@ class Chi2(ManyToOneNode):
                 node=self,
                 input=errors,
             )
-        self.fcn = self._functions[dim]
+        self.fcn = self._functions[f"{dim}d"]
 
         self._result.dd.shape = (1,)
         self._result.dd.dtype = self._data_tuple[0].dd.dtype

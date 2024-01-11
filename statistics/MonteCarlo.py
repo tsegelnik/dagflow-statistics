@@ -147,7 +147,7 @@ class MonteCarlo1(MonteCarlo):
         _baseclass: bool = True,
         **kwargs,
     ):
-        if not mode in MonteCarloModes1:
+        if mode not in MonteCarloModes1:
             raise RuntimeError(
                 f"Invalid montecarlo mode {mode}. Expect: {MonteCarloModes1}"
             )
@@ -224,7 +224,7 @@ class MonteCarlo2(MonteCarlo):
         _baseclass: bool = True,
         **kwargs,
     ):
-        if not mode in MonteCarloModes2:
+        if mode not in MonteCarloModes2:
             raise RuntimeError(
                 f"Invalid montecarlo mode {mode}. Expect: {MonteCarloModes2}"
             )
