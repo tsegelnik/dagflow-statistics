@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING
 
 from numba import njit
 from numpy import double, empty, square, subtract
@@ -27,7 +27,7 @@ def _chi2_1d(
 
 class Chi2(ManyToOneNode):
     r"""
-    $\Chi^{2}$ node
+    $\chi^{2}$ node
 
     inputs:
         `0` or `data`: data (1d),
@@ -50,9 +50,9 @@ class Chi2(ManyToOneNode):
         "_buffer",
     )
 
-    _data_tuple: Tuple["Input"]
-    _theory_tuple: Tuple["Input"]
-    _errors_tuple: Tuple["Input"]
+    _data_tuple: tuple["Input"]
+    _theory_tuple: tuple["Input"]
+    _errors_tuple: tuple["Input"]
     _result: "Output"
     _buffer: NDArray
     _matrix_is_lower: bool
@@ -61,10 +61,10 @@ class Chi2(ManyToOneNode):
         super().__init__(name, *args, output_name="result", **kwargs)
         self.labels.setdefaults(
             {
-                "text": r"$\Chi^{2}$",
-                "plottitle": r"$\Chi^{2}$",
-                "latex": r"$\Chi^{2}$",
-                "axis": r"$\Chi^{2}$",
+                "text": r"\chi$^{2}$",
+                "plottitle": r"$\chi^{2}$",
+                "latex": r"$\chi^{2}$",
+                "axis": r"$\chi^{2}$",
                 "mark": r"χ²",
             }
         )
@@ -76,7 +76,7 @@ class Chi2(ManyToOneNode):
         self._functions.update({"1d": self._fcn_1d, "2d": self._fcn_2d})
 
     @staticmethod
-    def _input_names() -> Tuple[str, ...]:
+    def _input_names() -> tuple[str, ...]:
         return "data", "theory", "errors"
 
     @property
@@ -110,13 +110,11 @@ class Chi2(ManyToOneNode):
 
     def _typefunc(self) -> None:
         """A output takes this function to determine the dtype and shape"""
-        from dagflow.typefunctions import (
-            check_input_dimension,
-            check_input_square,
-            check_inputs_multiplicable_mat,
-            check_inputs_multiplicity,
-            check_inputs_same_shape,
-        )
+        from dagflow.typefunctions import (check_input_dimension,
+                                           check_input_square,
+                                           check_inputs_multiplicable_mat,
+                                           check_inputs_multiplicity,
+                                           check_inputs_same_shape)
 
         check_inputs_multiplicity(self, 3)
         self._data_tuple = tuple(self.inputs[::3])  # input: 0
