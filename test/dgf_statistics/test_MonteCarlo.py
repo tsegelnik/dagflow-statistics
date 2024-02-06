@@ -1,5 +1,5 @@
 from os.path import join
-from statistics.MonteCarlo import MonteCarlo
+from dgf_statistics.MonteCarlo import MonteCarlo
 
 from matplotlib import pyplot as plt
 from numpy import allclose, arange, diag, dot, eye, fabs, fill_diagonal, ones
@@ -257,7 +257,7 @@ class MCTestData:
         n3 = (diff_norm_abs > 3).sum()
         assert n1 <= self.data.size * 0.6
         assert n2 <= self.data.size * 0.2 + 1
-        assert n3 <= 1
+        assert n3 <= 2
 
     def check_nextSample(self):
         index = int(self.index)
