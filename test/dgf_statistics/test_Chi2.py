@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-from statistics.Chi2 import Chi2
-from statistics.CNPStat import CNPStat
+from dgf_statistics.Chi2 import Chi2
+from dgf_statistics.CNPStat import CNPStat
 
 from numpy import allclose, arange, array, diag, finfo, matmul
 from numpy.linalg import cholesky, inv

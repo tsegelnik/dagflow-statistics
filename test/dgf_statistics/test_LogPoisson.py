@@ -7,7 +7,7 @@ from dagflow.graph import Graph
 from dagflow.graphviz import savegraph
 from dagflow.lib.Array import Array
 
-from statistics.LogPoisson import LogPoisson
+from dgf_statistics.LogPoisson import LogPoisson
 
 
 @mark.parametrize("mode", ("poisson", "poisson_ratio"))
