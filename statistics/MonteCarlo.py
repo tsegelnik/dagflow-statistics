@@ -1,4 +1,4 @@
-from typing import Literal, Tuple
+from typing import Literal
 
 from numba import float64, njit, void
 from numpy import add, double, matmul, sqrt
@@ -7,13 +7,11 @@ from numpy.typing import NDArray
 
 from dagflow.exception import InitializationError
 from dagflow.lib import BlockToOneNode
-from dagflow.typefunctions import (
-    check_input_matrix_or_diag,
-    check_inputs_multiplicable_mat,
-    check_inputs_multiplicity,
-    check_outputs_number,
-    copy_from_input_to_output,
-)
+from dagflow.typefunctions import (check_input_matrix_or_diag,
+                                   check_inputs_multiplicable_mat,
+                                   check_inputs_multiplicity,
+                                   check_outputs_number,
+                                   copy_from_input_to_output)
 
 MonteCarloModes = {"asimov", "normal", "normalstats", "poisson", "covariance"}
 ModeType = Literal[MonteCarloModes]
@@ -174,7 +172,7 @@ class MonteCarlo1(MonteCarlo):
         )
 
     @staticmethod
-    def _input_names() -> Tuple[str, ...]:
+    def _input_names() -> tuple[str, ...]:
         return ("data",)
 
     def _fcn_asimov(self) -> None:
@@ -254,7 +252,7 @@ class MonteCarlo2(MonteCarlo):
         )
 
     @staticmethod
-    def _input_names() -> Tuple[str, ...]:
+    def _input_names() -> tuple[str, ...]:
         return "data", "errors"
 
     def _fcn_covariance_L(self) -> None:

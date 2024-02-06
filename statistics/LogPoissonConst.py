@@ -1,13 +1,16 @@
-from math import lgamma, log
-from typing import TYPE_CHECKING, Literal
-
-from numba import float64, njit, void
-from numpy import double
-from numpy.typing import NDArray
+from math import lgamma
+from math import log
+from typing import Literal
+from typing import TYPE_CHECKING
 
 from dagflow.exception import InitializationError
 from dagflow.inputhandler import MissingInputAddOne
 from dagflow.nodes import FunctionNode
+from numba import float64
+from numba import njit
+from numba import void
+from numpy import double
+from numpy.typing import NDArray
 
 if TYPE_CHECKING:
     from dagflow.input import Input

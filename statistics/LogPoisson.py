@@ -1,9 +1,10 @@
-from typing import TYPE_CHECKING, Mapping
+from statistics.LogPoissonConst import LogPoissonConst
+from statistics.LogPoissonConst import ModeType
+from statistics.LogPoissonMain import LogPoissonMain
+from collections.abc import Mapping
+from typing import TYPE_CHECKING
 
 from dagflow.metanode import MetaNode
-
-from statistics.LogPoissonConst import LogPoissonConst, ModeType
-from statistics.LogPoissonMain import LogPoissonMain
 
 if TYPE_CHECKING:
     from dagflow.node import Node

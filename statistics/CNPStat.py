@@ -1,18 +1,14 @@
 from math import sqrt
-from typing import Tuple
 
 from numba import float64, njit, void
 from numpy import double
 from numpy.typing import NDArray
 
 from dagflow.lib.ManyToOneNode import ManyToOneNode
-from dagflow.typefunctions import (
-    AllPositionals,
-    check_input_dimension,
-    check_inputs_multiplicity,
-    check_inputs_same_shape,
-    copy_from_input_to_output,
-)
+from dagflow.typefunctions import (AllPositionals, check_input_dimension,
+                                   check_inputs_multiplicity,
+                                   check_inputs_same_shape,
+                                   copy_from_input_to_output)
 
 
 @njit(void(float64[:], float64[:], float64[:]), cache=True)
@@ -55,7 +51,7 @@ class CNPStat(ManyToOneNode):
         )
 
     @staticmethod
-    def _input_names() -> Tuple[str, ...]:
+    def _input_names() -> tuple[str, ...]:
         return "data", "theory"
 
     def _fcn(self) -> None:

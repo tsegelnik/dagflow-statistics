@@ -1,13 +1,15 @@
 from math import log
 from typing import TYPE_CHECKING
 
-from numba import float64, njit, void
-from numpy import double
-from numpy.typing import NDArray
-
 from dagflow.inputhandler import MissingInputAddOne
 from dagflow.nodes import FunctionNode
-from dagflow.typefunctions import check_inputs_multiplicity, check_inputs_same_shape
+from dagflow.typefunctions import check_inputs_multiplicity
+from dagflow.typefunctions import check_inputs_same_shape
+from numba import float64
+from numba import njit
+from numba import void
+from numpy import double
+from numpy.typing import NDArray
 
 if TYPE_CHECKING:
     from dagflow.input import Input
