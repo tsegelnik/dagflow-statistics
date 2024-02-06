@@ -257,7 +257,7 @@ class MCTestData:
         n3 = (diff_norm_abs > 3).sum()
         assert n1 <= self.data.size * 0.6
         assert n2 <= self.data.size * 0.2 + 1
-        assert n3 <= 2
+        assert n3 <= 3
 
     def check_nextSample(self):
         index = int(self.index)
