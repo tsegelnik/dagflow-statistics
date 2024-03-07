@@ -73,10 +73,12 @@ class LogPoisson(MetaNode):
 #    def replicate(
 #        cls,
 #        mode: ModeType = "poisson",
-#        name_LogPoissonConst: str = "LogPoissonConst",
-#        name_LogPoissonMain: str = "LogPoisson",
-#        labels: Mapping = {},
 #        *,
+#        names: Mapping[str, str] = {
+#           "LogPoissonConst": "LogPoissonConst",
+#           "LogPoissonMain": "LogPoisson",
+#        }
+#        labels: Mapping = {},
 #        replicate: Tuple[KeyLike, ...] = ((),),
 #    ) -> Tuple["LogPoisson", "NodeStorage"]:
 #        storage = NodeStorage(default_containers=True)
@@ -85,10 +87,10 @@ class LogPoisson(MetaNode):
 #        outputs = storage("outputs")
 #
 #        logPoissons = cls(mode=mode, bare=True)
-#        key_LogPoissonMain = (name_LogPoissonMain,)
-#        key_LogPoissonConst = (name_LogPoissonConst,)
+#        key_LogPoissonMain = (names["LogPoissonMain"],)
+#        key_LogPoissonConst = (names["LogPoissonConst"],)
 #
-#        logPoissons._init_LogPoissonConst(mode, name_LogPoissonConst, labels.get("LogPoissonConst", {}))
+#        logPoissons._init_LogPoissonConst(mode, names["LogPoissonConst"], labels.get("LogPoissonConst", {}))
 #        outputs[key_LogPoissonConst + ("const",)] = logPoissons._LogPoissonConst.outputs["const"]
 #
 #        label_int = labels.get("LogPoisson", {})
