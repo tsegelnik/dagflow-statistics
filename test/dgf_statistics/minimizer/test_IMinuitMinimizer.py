@@ -1,4 +1,4 @@
-from numpy import linspace
+from numpy import allclose, linspace
 from pytest import mark
 from scipy.stats import norm
 
@@ -24,18 +24,18 @@ class NormalPDF(OneToOneNode):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._add_input("mu", positional=False)
-        self._add_input("sigma", positional=False)
+        self._mu = self._add_input("mu", positional=False)
+        self._sigma = self._add_input("sigma", positional=False)
 
     def _fcn(self):
         mu = self._mu.data[0]
         sigma = self._sigma.data[0]
         for inp, out in zip(self.inputs.iter_data(), self.outputs.iter_data()):
-            out[:] = norm(inp, loc=mu, scale=sigma)
+            out[:] = norm.pdf(inp[:], loc=mu, scale=sigma)
 
 
-@mark.parametrize("mu", (0, -2))
-@mark.parametrize("sigma", (0.5, 1))
+@mark.parametrize("mu", (10.789123, -5.321123))
+@mark.parametrize("sigma", (0.543976, 1.967091))
 def test_IMinuitMinimizer_normal(mu, sigma, testname):
     size = 11
 
@@ -68,18 +68,15 @@ def test_IMinuitMinimizer_normal(mu, sigma, testname):
             "sigma": Parameter(parent=None, value_output=Sigma.outputs[0]),
         }
     )
-    # TODO: solve the problem with parameters properties!
     parmu, parsigma = pars.specs()
-    parmu.vmin = mu - 1
-    parmu.vmax = mu + 1
-    parsigma.vmin = sigma / 2
-    parsigma.vmax = sigma * 2
     parmu.step = 0.1
     parsigma.step = 0.1
 
-
-    minimizer = IMinuitMinimizer(statistic=chi.outputs[0], minpars=pars, verbose=True)
+    startvalues = [mu / 2, sigma *2]
+    minimizer = IMinuitMinimizer(
+        statistic=chi.outputs[0], minpars=pars, verbose=False, startvalues=startvalues
+    )
     res = minimizer.fit()
-    assert all(res["x"] == [mu, sigma])
+    assert allclose(res["x"], [mu, sigma], rtol=0, atol=1e-15)
 
     savegraph(graph, f"output/{testname}.png")

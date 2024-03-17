@@ -25,6 +25,7 @@ class MinimizerBase:
         "_minimizable",
         "_minimizer",
         "_parspecs",
+        "_startvalues",
         "_result",
         "_statistic",
         "_verbose",
@@ -34,12 +35,19 @@ class MinimizerBase:
     _label: str
     _minimizable: Minimizable | None
     _parspecs: MinPars
+    _startvalues: list[float] | None
     _result: dict
     _minimizer: Any
     _verbose: bool
 
     def __init__(
-        self, statistic: Output, minpars: MinPars, name: str, label: str, verbose: bool = False
+        self,
+        statistic: Output,
+        minpars: MinPars,
+        name: str,
+        label: str,
+        verbose: bool = False,
+        startvalues: list[float] | None = None,
     ):
         if not isinstance(statistic, Output):
             raise InitializationError(
@@ -51,6 +59,19 @@ class MinimizerBase:
                 f"arg 'minpars' must be a MinPars, but given {type(minpars)=}, {minpars=}."
             )
         self._parspecs = minpars
+        if startvalues is not None:
+            if not isinstance(startvalues, Sequence) or not all(
+                isinstance(val, float) for val in startvalues
+            ):
+                raise InitializationError(
+                    f"'startvalues' must be Sequence[float], but given {startvalues=}"
+                )
+            if len(startvalues) != len(minpars):
+                raise InitializationError(
+                    "Sizes of 'startvalues' and 'minpars' must coincide, "
+                    f"but given {len(startvalues)=}, {len(minpars)=}"
+                )
+        self._startvalues = startvalues
         self._name = name
         self._label = label
         self._verbose = verbose
@@ -94,17 +115,17 @@ class MinimizerBase:
         with FitResult() as fr:
             fun = self._statistic.data
 
-        fr.set(
-            x=[],
-            errors=[],
-            fun=fun,
-            success=True,
-            message="stastitics evaluation (no parameters)",
-            minimizer="none",
-            nfev=1,
-        )
-        self._result = fr.result
-        self.patchresult()
+            fr.set(
+                x=[],
+                errors=[],
+                fun=fun,
+                success=True,
+                message="stastitics evaluation (no parameters)",
+                minimizer="none",
+                nfev=1,
+            )
+            self._result = fr.result
+            self.patchresult()
 
         return self.result
 
@@ -120,11 +141,11 @@ class MinimizerBase:
     def patchresult(self) -> None:
         names = list(self._parspecs.names())
         result = self._result
-        result["npars"] = self._parspecs.nvariable()
-        result["nfree"] = self._parspecs.nfree()
-        result["nconstrained"] = self._parspecs.nconstrained()
-        fixed = result["fixed"] = self._parspecs.fixed()
-        result["nfixed"] = len(fixed)
+        # result["npars"] = self._parspecs.nvariable()
+        # result["nfree"] = self._parspecs.nfree()
+        # result["nconstrained"] = self._parspecs.nconstrained()
+        # fixed = result["fixed"] = self._parspecs.fixed()
+        # result["nfixed"] = len(fixed)
         result["x"] = result.pop("x")
         result["errors"] = result.pop("errors")
         result["names"] = names

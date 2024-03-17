@@ -23,8 +23,12 @@ except Exception:
 
 class IMinuitMinimizer(MinimizerBase):
     def __init__(
-        self, statistic: "Output", minpars: "MinPars", name: str = "iminuit", label: str = "iminuit",
-        **kwargs
+        self,
+        statistic: "Output",
+        minpars: "MinPars",
+        name: str = "iminuit",
+        label: str = "iminuit",
+        **kwargs,
     ):
         super().__init__(statistic, minpars, name, label, **kwargs)
 
@@ -42,11 +46,9 @@ class IMinuitMinimizer(MinimizerBase):
         assert self.parspecs
 
         self.setuppars()
-        with self.parspecs:
-            fr = FitResult()
+        with FitResult() as fr:
             try:
-                with fr:
-                    result = self._minimizer.migrad()
+                result = self._minimizer.migrad()
             except CppRuntimeError as exc:
                 message = f"{exc.what()}"
                 success = False
@@ -74,20 +76,20 @@ class IMinuitMinimizer(MinimizerBase):
                     nfev=result.nfcn,
                 )
 
-            self._result = fr.result
-            self.patchresult()
+        self._result = fr.result
+        self.patchresult()
 
-            if self._result["success"]:
-                if covariance:
-                    _, status = self.get_covmatrix()
-                    self._result["covariance"] = {
-                        "matrix": array(result.covariance),
-                        "status": status,
-                    }
-                if profile_errors:
-                    self.profile_errors(profile_errors, self.result)
-                if scan:
-                    self.get_scans(scan, self.result)
+        if self._result["success"]:
+            if covariance:
+                _, status = self.get_covmatrix()
+                self._result["covariance"] = {
+                    "matrix": array(result.covariance),
+                    "status": status,
+                }
+            if profile_errors:
+                self.profile_errors(profile_errors, self.result)
+            if scan:
+                self.get_scans(scan, self.result)
 
         return self.result
 
@@ -98,7 +100,8 @@ class IMinuitMinimizer(MinimizerBase):
             x = ascontiguousarray(x, dtype="d")
             return minimizable(x)
 
-        self._minimizer = Minuit(fcn, self.parspecs.values(), name=self.parspecs.names())
+        startvalues = self._startvalues if self._startvalues is not None else self.parspecs.values()
+        self._minimizer = Minuit(fcn, startvalues, name=self.parspecs.names())
         self._minimizer.throw_nan = True
         self._minimizer.errordef = 1
 
@@ -108,11 +111,6 @@ class IMinuitMinimizer(MinimizerBase):
         self.parspecs.resetstatus()
 
     def setuppar(self, i: int, parspec: "MinPar") -> None:
-        vmin, vmax = parspec.vmin, parspec.vmax
-        if parspec.fixed:
-            self._minimizer.fixed[i] = parspec.value
-
-        self._minimizer.limits[i] = vmin, vmax
         self._minimizer.values[i] = parspec.value
         self._minimizer.errors[i] = parspec.step
 
