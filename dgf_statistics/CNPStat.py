@@ -5,10 +5,13 @@ from numpy import double
 from numpy.typing import NDArray
 
 from dagflow.lib.ManyToOneNode import ManyToOneNode
-from dagflow.typefunctions import (AllPositionals, check_input_dimension,
-                                   check_inputs_multiplicity,
-                                   check_inputs_same_shape,
-                                   copy_from_input_to_output)
+from dagflow.typefunctions import (
+    AllPositionals,
+    check_input_dimension,
+    check_inputs_multiplicity,
+    check_inputs_same_shape,
+    copy_from_input_to_output,
+)
 
 
 @njit(void(float64[:], float64[:], float64[:]), cache=True)
@@ -19,7 +22,7 @@ def _cnp(
 ) -> None:
     coeff = sqrt(3.0)
     for i in range(len(data)):
-        result[i] = coeff / sqrt(1.0 / data[i] + 2.0 / theory[i])
+        result[i] = coeff / sqrt(abs(1.0 / data[i] + 2.0 / theory[i]))
 
 
 class CNPStat(ManyToOneNode):

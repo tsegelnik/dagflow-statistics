@@ -20,32 +20,34 @@ except Exception:
     from dagflow.exception import DagflowError  # fmt:skip
     CppRuntimeError = DagflowError
 
-
 class IMinuitMinimizer(MinimizerBase):
+    __slots__ = ("_errordef")
+    _errordef: float
     def __init__(
         self,
         statistic: "Output",
         minpars: "MinPars",
         name: str = "iminuit",
         label: str = "iminuit",
+        errordef: float = 1.0,
         **kwargs,
     ):
         super().__init__(statistic, minpars, name, label, **kwargs)
+        self._errordef = errordef
 
     def _child_fit(
         self,
         *,
-        profile_errors: Sequence | None = None,
         scan: Sequence | None = None,
+        profile_errors: bool = False,
         covariance: bool = False,
     ) -> dict:
-        if profile_errors is None:
-            profile_errors = []
+        assert self.parspecs, "Pass parameters to minimize"
         if scan is None:
             scan = []
-        assert self.parspecs
 
         self.setuppars()
+        result = self._minimizer
         with FitResult() as fr:
             try:
                 result = self._minimizer.migrad()
@@ -53,12 +55,10 @@ class IMinuitMinimizer(MinimizerBase):
                 message = f"{exc.what()}"
                 success = False
                 fun = None
-                result = self._minimizer
             except RuntimeError as exc:
                 message = repr(exc)
                 success = False
                 fun = None
-                result = self._minimizer
             else:
                 success = result.valid
                 message = str(result.fmin)
@@ -66,6 +66,9 @@ class IMinuitMinimizer(MinimizerBase):
             finally:
                 argmin = array(result.values)
                 errors = array(result.errors)
+                success = result.valid
+                message = str(result.fmin)
+                fun = result.fval
                 fr.set(
                     x=argmin,
                     errors=errors,
@@ -87,7 +90,7 @@ class IMinuitMinimizer(MinimizerBase):
                     "status": status,
                 }
             if profile_errors:
-                self.profile_errors(profile_errors, self.result)
+                self.profile_errors()
             if scan:
                 self.get_scans(scan, self.result)
 
@@ -95,24 +98,21 @@ class IMinuitMinimizer(MinimizerBase):
 
     def setuppars(self) -> None:
         minimizable = self.update_minimizable()
-
-        def fcn(x):
+        def fcn(*x):
             x = ascontiguousarray(x, dtype="d")
             return minimizable(x)
 
         startvalues = self._startvalues if self._startvalues is not None else self.parspecs.values()
-        self._minimizer = Minuit(fcn, startvalues, name=self.parspecs.names())
+        self._minimizer = Minuit(fcn, *startvalues, name=self.parspecs.names())
         self._minimizer.throw_nan = True
-        self._minimizer.errordef = 1
+        self._minimizer.errordef = self._errordef
 
         for i, parspec in enumerate(self.parspecs.specs()):
             self.setuppar(i, parspec)
-
         self.parspecs.resetstatus()
 
     def setuppar(self, i: int, parspec: "MinPar") -> None:
         self._minimizer.values[i] = parspec.value
-        self._minimizer.errors[i] = parspec.step
 
     def get_covmatrix(self, verbose: bool = False):
         status = self._minimizer.fmin.has_covariance
@@ -151,29 +151,37 @@ class IMinuitMinimizer(MinimizerBase):
         scan["success"] = False
         scan["message"] = msg
 
-    def profile_errors(self, names: list, fitresult: dict):
-        errs = fitresult["errors_profile"] = {}
-        statuses = fitresult["errors_profile_status"] = {}
-        if names:
-            print("Caclulating profile error for:", names)
+    def profile_errors(self):
+        names = self.result["names"]
+        errs = self.result["errors"] = []
+        errsdict = self.result["errorsdict"]
+        statuses = self.result["errors_profile_status"] = {}
 
         for name in names:
             status = statuses[name] = {}
             try:
-                self._minimizer.minos(name)
+                result = self._minimizer.minos(name)
+                print(result)
+                stat = result.errors
+                errs.append([stat.lower, stat.upper])
+                errsdict[name] = errs[-1]
+
+                for key in stat.__slots__:
+                    status[key] = getattr(stat, key)
+                status["message"] = ""
             except CppRuntimeError as exc:
-                self._on_exception_in_profile_errors(errs, name, status, f"{exc.what()}")
+                self._on_exception_in_profile_errors(status, f"{exc.what()}")
             except RuntimeError as exc:
-                self._on_exception_in_profile_errors(errs, name, status, repr(exc))
+                self._on_exception_in_profile_errors(status, repr(exc))
             else:
                 stat = self._minimizer.merrors[name]
-                errs[name] = [stat.lower, stat.upper]
+                errs.append([stat.lower, stat.upper])
+                errsdict[name] = errs[-1]
 
                 for key in stat.__slots__:
                     status[key] = getattr(stat, key)
                 status["message"] = ""
 
-    def _on_exception_in_profile_errors(self, errs: dict, name: str, status: dict, msg: str):
-        errs[name] = [None, None]
+    def _on_exception_in_profile_errors(self, status: dict, msg: str):
         status["is_valid"] = False
         status["message"] = msg
