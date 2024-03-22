@@ -1,4 +1,4 @@
-from numpy import absolute, allclose, linspace, sqrt
+from numpy import allclose, linspace
 from pytest import mark
 from scipy.stats import norm
 
@@ -13,7 +13,6 @@ from dgf_statistics.MonteCarlo import MonteCarlo
 from dgf_statistics.CNPStat import CNPStat
 from dgf_statistics.Chi2 import Chi2
 from dgf_statistics.minimizer.iminuitminimizer import IMinuitMinimizer
-from dgf_statistics.minimizer.minpars import MinPars
 
 from dagflow.lib import OneToOneNode
 
@@ -83,8 +82,7 @@ def test_IMinuitMinimizer_normal(mu, sigma, testname):
 
     parmu = Parameter(parent=None, value_output=MuFit.outputs[0])
     parsigma = Parameter(parent=None, value_output=SigmaFit.outputs[0])
-    pars = MinPars({"mu": parmu,"sigma": parsigma})
-    minimizer = IMinuitMinimizer(statistic=chi.outputs[0], minpars=pars, verbose=False)
+    minimizer = IMinuitMinimizer(statistic=chi.outputs[0], parameters=[parmu, parsigma], verbose=False)
     res = minimizer.fit()
     assert allclose(res["x"], [mu, sigma], rtol=0, atol=1e-2)
     

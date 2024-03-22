@@ -1,4 +1,3 @@
-from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 from iminuit import Minuit
@@ -9,7 +8,8 @@ from .minimizerbase import MinimizerBase
 
 if TYPE_CHECKING:
     from dagflow.output import Output
-    from .minpars import MinPars, MinPar
+    from collections.abc import Sequence
+    from dagflow.parameters import Parameter
 
 # if we cannot import runtime_error from root we use DagflowError to avoid any exception capture,
 # i.e., if CppRuntimeError==DagflowError, the exception will be not raised
@@ -26,25 +26,20 @@ class IMinuitMinimizer(MinimizerBase):
     def __init__(
         self,
         statistic: "Output",
-        minpars: "MinPars",
+        parameters: list["Parameter"],
         name: str = "iminuit",
         label: str = "iminuit",
-        errordef: float = 1.0,
+        errordef: float = 1.0, # 1.0: LeastSquare, 0.5: 
         **kwargs,
     ):
-        super().__init__(statistic, minpars, name, label, **kwargs)
+        super().__init__(statistic, parameters, name, label, **kwargs)
         self._errordef = errordef
 
     def _child_fit(
         self,
         *,
-        scan: Sequence | None = None,
-        profile_errors: bool = False,
         covariance: bool = False,
     ) -> dict:
-        assert self.parspecs, "Pass parameters to minimize"
-        if scan is None:
-            scan = []
 
         self.setuppars()
         result = self._minimizer
@@ -82,36 +77,35 @@ class IMinuitMinimizer(MinimizerBase):
         self._result = fr.result
         self.patchresult()
 
-        if self._result["success"]:
-            if covariance:
-                _, status = self.get_covmatrix()
-                self._result["covariance"] = {
-                    "matrix": array(result.covariance),
-                    "status": status,
-                }
-            if profile_errors:
-                self.profile_errors()
-            if scan:
-                self.get_scans(scan, self.result)
+        if self._result["success"] and covariance:
+            _, status = self.get_covmatrix()
+            self._result["covariance"] = {
+                "matrix": array(result.covariance),
+                "status": status,
+            }
 
         return self.result
 
     def setuppars(self) -> None:
+        assert self._parameters, "Pass parameters to minimize"
         minimizable = self.update_minimizable()
         def fcn(*x):
             x = ascontiguousarray(x, dtype="d")
             return minimizable(x)
 
-        startvalues = self._startvalues if self._startvalues is not None else self.parspecs.values()
-        self._minimizer = Minuit(fcn, *startvalues, name=self.parspecs.names())
+        startvalues = []
+        names = []
+        for par in self._parameters:
+            names.append(par.output.node.name)
+            startvalues.append(par.value)
+        self._minimizer = Minuit(fcn, *startvalues, name=names)
         self._minimizer.throw_nan = True
         self._minimizer.errordef = self._errordef
 
-        for i, parspec in enumerate(self.parspecs.specs()):
-            self.setuppar(i, parspec)
-        self.parspecs.resetstatus()
+        for i, par in enumerate(self._parameters):
+            self.setuppar(i, par)
 
-    def setuppar(self, i: int, parspec: "MinPar") -> None:
+    def setuppar(self, i: int, parspec: "Parameter") -> None:
         self._minimizer.values[i] = parspec.value
 
     def get_covmatrix(self, verbose: bool = False):

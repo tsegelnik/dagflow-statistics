@@ -1,12 +1,12 @@
-from collections.abc import Sequence
 from typing import Any
 
 from dagflow.exception import InitializationError
-from dagflow.output import Output
 
 from .fitresult import FitResult
 from .Minimizable import Minimizable
-from .minpars import MinPars
+from collections.abc import Sequence
+from dagflow.parameters import Parameter
+from dagflow.output import Output
 
 # if we cannot import runtime_error from root we use DagflowError to avoid any exception capture,
 # i.e., if CppRuntimeError==DagflowError, the exception will be not raised
@@ -24,8 +24,7 @@ class MinimizerBase:
         "_label",
         "_minimizable",
         "_minimizer",
-        "_parspecs",
-        "_startvalues",
+        "_parameters",
         "_result",
         "_statistic",
         "_verbose",
@@ -34,44 +33,34 @@ class MinimizerBase:
     _name: str
     _label: str
     _minimizable: Minimizable | None
-    _parspecs: MinPars
-    _startvalues: list[float] | None
+    _parameters: list[Parameter]
     _result: dict
     _minimizer: Any
     _verbose: bool
+    _statistic: Output
 
     def __init__(
         self,
         statistic: Output,
-        minpars: MinPars,
+        parameters: Sequence[Parameter],
         name: str,
         label: str,
         verbose: bool = False,
-        startvalues: list[float] | None = None,
     ):
         if not isinstance(statistic, Output):
             raise InitializationError(
                 f"arg 'statistic' must be an Output, but given {type(statistic)=}, {statistic=}."
             )
         self._statistic = statistic
-        if not isinstance(minpars, MinPars):
-            raise InitializationError(
-                f"arg 'minpars' must be a MinPars, but given {type(minpars)=}, {minpars=}."
-            )
-        self._parspecs = minpars
-        if startvalues is not None:
-            if not isinstance(startvalues, Sequence) or not all(
-                isinstance(val, float) for val in startvalues
-            ):
+        self._parameters = []  # pyright: ignore
+        if parameters:
+            if not isinstance(parameters, Sequence):
                 raise InitializationError(
-                    f"'startvalues' must be Sequence[float], but given {startvalues=}"
+                    f"parameters must be a sequence of GaussianParameter, but given {parameters=},"
+                    f" {type(parameters)=}!"
                 )
-            if len(startvalues) != len(minpars):
-                raise InitializationError(
-                    "Sizes of 'startvalues' and 'minpars' must coincide, "
-                    f"but given {len(startvalues)=}, {len(minpars)=}"
-                )
-        self._startvalues = startvalues
+            for par in parameters:
+                self.append_par(par)
         self._name = name
         self._label = label
         self._verbose = verbose
@@ -80,6 +69,10 @@ class MinimizerBase:
     @property
     def statistic(self) -> Output:
         return self._statistic
+
+    @property
+    def parameters(self) -> list[Parameter]:
+        return self._parameters
 
     @property
     def name(self) -> str:
@@ -95,19 +88,24 @@ class MinimizerBase:
         self._minimizable = None
 
     @property
-    def parspecs(self) -> MinPars:
-        return self._parspecs
+    def parameters(self) -> list[Parameter]:
+        return self._parameters
 
-    @parspecs.setter
-    def parspecs(self, parspecs) -> None:
-        self._parspecs = parspecs
+    @parameters.setter
+    def parameters(self, parameters) -> None:
+        self.parameters = parameters
 
     @property
     def result(self) -> dict:
         return self._result
 
+    def append_par(self, par: Parameter) -> None:
+        if not isinstance(par, Parameter):
+            raise RuntimeError(f"par must be a Parameter, but given {par=}, {type(par)=}!")
+        self._parameters.append(par)
+
     def fit(self, **kwargs) -> dict:
-        if len(self.parspecs) == 0:
+        if len(self.parameters) == 0:
             return self.evalstatistic()
         return self._child_fit(**kwargs)
 
@@ -129,22 +127,16 @@ class MinimizerBase:
 
         return self.result
 
-    def _child_fit(
-        self,
-        *,
-        profile_errors: Sequence | None = None,
-        scan: Sequence | None = None,
-        covariance: bool = False,
-    ) -> dict:
+    def _child_fit(self, *, covariance: bool = False) -> dict:
         raise NotImplementedError("The method must be overriden!")
 
     def patchresult(self) -> None:
-        names = list(self._parspecs.names())
+        names = [par.output.node.name for par in self.parameters]
         result = self._result
-        # result["npars"] = self._parspecs.nvariable()
-        # result["nfree"] = self._parspecs.nfree()
-        # result["nconstrained"] = self._parspecs.nconstrained()
-        # fixed = result["fixed"] = self._parspecs.fixed()
+        result["npars"] = len(self.parameters)
+        # result["nfree"] = self.parameters.nfree()
+        # result["nconstrained"] = self.parameters.nconstrained()
+        # fixed = result["fixed"] = self.parameters.fixed()
         # result["nfixed"] = len(fixed)
         result["x"] = result.pop("x")
         result["errors"] = result.pop("errors")
@@ -156,8 +148,8 @@ class MinimizerBase:
             result["errorsdict"] = {}
 
     def update_minimizable(self) -> Minimizable:
-        if self._minimizable is None or self.parspecs.resized:
+        if self._minimizable is None:
             self._minimizable = Minimizable(self.statistic, verbose=self._verbose)
-            for parspec in self.parspecs.specs():
-                self._minimizable.append_par(parspec.par)
+            for par in self.parameters:
+                self._minimizable.append_par(par)
         return self._minimizable
