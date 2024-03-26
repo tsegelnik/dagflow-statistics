@@ -1,4 +1,4 @@
-from time import time, perf_counter
+from time import perf_counter, time
 
 
 class FitResult:
@@ -20,7 +20,7 @@ class FitResult:
         self._clock = perf_counter()
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, *_):
         self._clock = perf_counter() - self._clock
         self._wall = time() - self._wall
 
@@ -37,7 +37,6 @@ class FitResult:
         result["x"] = x
         result["errors"] = errors
         hess_inv = result["hess_inv"] = kwargs.pop("hess_inv", None)
-        result["jac"] = kwargs.pop("jac", None)
 
         if errors is None and hess_inv is not None:
             from numpy import diag  # fmt: skip

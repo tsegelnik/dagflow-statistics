@@ -1,12 +1,12 @@
+from collections.abc import Sequence
 from typing import Any
 
 from dagflow.exception import InitializationError
+from dagflow.output import Output
+from dagflow.parameters import Parameter
 
 from .fitresult import FitResult
 from .Minimizable import Minimizable
-from collections.abc import Sequence
-from dagflow.parameters import Parameter
-from dagflow.output import Output
 
 # if we cannot import runtime_error from root we use DagflowError to avoid any exception capture,
 # i.e., if CppRuntimeError==DagflowError, the exception will be not raised
@@ -56,7 +56,7 @@ class MinimizerBase:
         if parameters:
             if not isinstance(parameters, Sequence):
                 raise InitializationError(
-                    f"parameters must be a sequence of GaussianParameter, but given {parameters=},"
+                    f"'parameters' must be a sequence of Parameter, but given {parameters=},"
                     f" {type(parameters)=}!"
                 )
             for par in parameters:
@@ -69,10 +69,6 @@ class MinimizerBase:
     @property
     def statistic(self) -> Output:
         return self._statistic
-
-    @property
-    def parameters(self) -> list[Parameter]:
-        return self._parameters
 
     @property
     def name(self) -> str:
@@ -101,7 +97,7 @@ class MinimizerBase:
 
     def append_par(self, par: Parameter) -> None:
         if not isinstance(par, Parameter):
-            raise RuntimeError(f"par must be a Parameter, but given {par=}, {type(par)=}!")
+            raise RuntimeError(f"'par' must be a Parameter, but given {par=}, {type(par)=}!")
         self._parameters.append(par)
 
     def fit(self, **kwargs) -> dict:
@@ -127,19 +123,13 @@ class MinimizerBase:
 
         return self.result
 
-    def _child_fit(self, *, covariance: bool = False) -> dict:
+    def _child_fit(self, **_) -> dict:
         raise NotImplementedError("The method must be overriden!")
 
     def patchresult(self) -> None:
         names = [par.output.node.name for par in self.parameters]
         result = self._result
         result["npars"] = len(self.parameters)
-        # result["nfree"] = self.parameters.nfree()
-        # result["nconstrained"] = self.parameters.nconstrained()
-        # fixed = result["fixed"] = self.parameters.fixed()
-        # result["nfixed"] = len(fixed)
-        result["x"] = result.pop("x")
-        result["errors"] = result.pop("errors")
         result["names"] = names
         result["xdict"] = dict(zip(names, (float(x) for x in self.result["x"])))
         if self.result["errors"] is not None:
@@ -147,7 +137,7 @@ class MinimizerBase:
         else:
             result["errorsdict"] = {}
 
-    def update_minimizable(self) -> Minimizable:
+    def init_minimizable(self) -> Minimizable:
         if self._minimizable is None:
             self._minimizable = Minimizable(self.statistic, verbose=self._verbose)
             for par in self.parameters:

@@ -1,3 +1,5 @@
+from math import sqrt
+
 from numpy import allclose, linspace
 from pytest import mark
 from scipy.stats import norm
@@ -5,18 +7,16 @@ from scipy.stats import norm
 from dagflow.graph import Graph
 from dagflow.graphviz import savegraph
 from dagflow.input import Input
-from dagflow.lib import Array
-
+from dagflow.lib import Array, OneToOneNode
 from dagflow.parameters import Parameter
 from dagflow.plot import plot_array_1d
-from dgf_statistics.MonteCarlo import MonteCarlo
-from dgf_statistics.CNPStat import CNPStat
 from dgf_statistics.Chi2 import Chi2
+from dgf_statistics.CNPStat import CNPStat
 from dgf_statistics.minimizer.iminuitminimizer import IMinuitMinimizer
-
-from dagflow.lib import OneToOneNode
+from dgf_statistics.MonteCarlo import MonteCarlo
 
 _NevScale = 10000
+
 
 class NormalPDF(OneToOneNode):
     __slots__ = ("_mu", "_sigma")
@@ -32,7 +32,7 @@ class NormalPDF(OneToOneNode):
         mu = self._mu.data[0]
         sigma = self._sigma.data[0]
         for inp, out in zip(self.inputs.iter_data(), self.outputs.iter_data()):
-            out[:] = _NevScale*norm.pdf(inp[:], loc=mu, scale=sigma)
+            out[:] = _NevScale * norm.pdf(inp[:], loc=mu, scale=sigma)
 
 
 @mark.parametrize("mu", (-1.531, 2.097))
@@ -42,8 +42,8 @@ def test_IMinuitMinimizer_normal(mu, sigma, testname):
     x = linspace(-8, 8, size)
 
     # start values of the fitting
-    mufit = mu/2
-    sigmafit = sigma*1.5
+    mufit = mu / 2
+    sigmafit = sigma * 1.5
     with Graph(close=True) as graph:
         # setting up of true parameters
         Mu0 = Array("mu0", [mu])
@@ -84,17 +84,29 @@ def test_IMinuitMinimizer_normal(mu, sigma, testname):
     parsigma = Parameter(parent=None, value_output=SigmaFit.outputs[0])
     minimizer = IMinuitMinimizer(statistic=chi.outputs[0], parameters=[parmu, parsigma], verbose=False)
     res = minimizer.fit()
-    assert allclose(res["x"], [mu, sigma], rtol=0, atol=1e-2)
-    
-    #minimizer.profile_errors()
-    print(res)
 
-    #draw(x, mc, model, modelfit)
+    atol = 5.0 / sqrt(_NevScale)
+    assert allclose(res["x"], [mu, sigma], rtol=0, atol=atol)
+    assert allclose(res["covariance"], minimizer.calculate_covariance(), rtol=0, atol=1e-10)
 
+    # errors checks
+    errors = minimizer.profile_errors()
+    names = res["names"]
+    assert errors["names"] == names
+    assert all(abs(err) < atol for errs in errors["errors"] for err in errs)
+    assert all(errors["errorsdict"][key] == errors["errors"][i] for i, key in enumerate(names))
+    for name in names:
+        for key in ("is_valid", "lower_valid", "upper_valid"):
+            assert errors["errors_profile_status"][name][key]
+        assert errors["errors_profile_status"][name]["message"] == ""
+
+    # save plot and graph
+    draw(x, mc, model, modelfit, f"output/{testname}-plot.png")
     savegraph(graph, f"output/{testname}.png")
 
-def draw(x, mc, model, modelfit):
-    from matplotlib import pyplot as plt # fmt:skip
+
+def draw(x, mc, model, modelfit, figname):
+    from matplotlib import pyplot as plt  # fmt:skip
     def _create_fig():
         result = plt.subplot(111)
         result.minorticks_on()
@@ -123,4 +135,5 @@ def draw(x, mc, model, modelfit):
         label="fit",
     )
     ax.legend()
-    plt.show()
+    plt.savefig(figname)
+    plt.close()
