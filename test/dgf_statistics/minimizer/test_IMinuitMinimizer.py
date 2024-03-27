@@ -125,15 +125,11 @@ def draw_params(res, mu, sigma, minimizer, figname):
 
 
 def draw_fit(x, mc, model, modelfit, figname):
-    def _create_fig():
-        result = plt.subplot(111)
-        result.minorticks_on()
-        result.grid()
-        result.set_xlabel("x")
-        result.set_ylabel("y")
-        return result
-
-    ax = _create_fig()
+    ax = plt.subplot(111)
+    ax.minorticks_on()
+    ax.grid()
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
     plot_array_1d(mc.outputs[0].data, meshes=x, color="black", label="MC")
     plot_array_1d(model.data, meshes=x, linestyle="--", label="model")
     plot_array_1d(modelfit.data, meshes=x, linestyle="--", label="fit")
