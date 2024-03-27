@@ -67,7 +67,7 @@ class IMinuitMinimizer(MinimizerBase):
                 minimizer=self._label,
                 nfev=result.nfcn,
                 errorsdef=self._errordef,
-                covariance=array(result.covariance)
+                covariance=array(result.covariance),
             )
             self._result = fr.result
 
@@ -123,17 +123,15 @@ class IMinuitMinimizer(MinimizerBase):
                     status[key] = getattr(stat, key)
                 status["message"] = ""
             except CppRuntimeError as exc:
-                self._on_exception_in_profile_errors(status, f"{exc.what()}")  # pyright: ignore
+                status["is_valid"] = False
+                status["message"] = f"{exc.what()}"  # pyright: ignore
             except RuntimeError as exc:
-                self._on_exception_in_profile_errors(status, repr(exc))
+                status["is_valid"] = False
+                status["message"] = repr(exc)
 
         return result
 
-    def _on_exception_in_profile_errors(self, status: dict, msg: str):
-        status["is_valid"] = False
-        status["message"] = msg
-
-    def calculate_covariance(self, ncall: int| None = None) -> "NDArray":
+    def calculate_covariance(self, ncall: int | None = None) -> "NDArray":
         """
         Calculates covariance matrix within the Hesse algorithm.
 
@@ -147,6 +145,12 @@ class IMinuitMinimizer(MinimizerBase):
         return res.covariance
 
     def get_scans(self, names: list, fitresult: dict):
+        """
+        Get Minos profile over a specified interval.
+
+        Scans over one parameter and minimises the function with respect to all other parameters
+        for each scan point.
+        """
         scans = fitresult["scan"] = {}
         if names:
             print("Caclulating profile for:", end=" ")
@@ -155,7 +159,7 @@ class IMinuitMinimizer(MinimizerBase):
             try:
                 xout, yout, valid = self._minimizer.mnprofile(name)
             except CppRuntimeError as exc:
-                self._on_exception_in_get_scans(scan, f"{exc.what()}")
+                self._on_exception_in_get_scans(scan, f"{exc.what()}")  # pyright: ignore
             except RuntimeError as exc:
                 self._on_exception_in_get_scans(scan, repr(exc))
             else:
