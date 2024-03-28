@@ -52,22 +52,25 @@ class IMinuitMinimizer(MinimizerBase):
         with FitResult() as fr:
             try:
                 result = self._minimizer.migrad(ncall=ncall, iterate=iterate)
-                message = str(result.fmin)
             except CppRuntimeError as exc:
                 message = f"{exc.what()}"  # pyright: ignore
             except RuntimeError as exc:
                 message = repr(exc)
-            # NOTE: maybe we need to avoid conversions to arrays if the result is not valid
+            else:
+                # the message by default has str, html and pretty representations,
+                # but we build a dict using slots with comlete information
+                fmin = result.fmin
+                message = {key[1:]: getattr(fmin, key) for key in fmin.__slots__}
             fr.set(
                 x=array(result.values),
                 errors=array(result.errors),
-                fun=result.fval,
+                fun=float(result.fval) if result.fval is not None else None,
                 success=result.valid,
-                message=message,
+                summary=message,
                 minimizer=self._label,
                 nfev=result.nfcn,
                 errorsdef=self._errordef,
-                covariance=array(result.covariance),
+                covariance=array(result.covariance) if result.covariance is not None else None,
             )
             self._result = fr.result
 

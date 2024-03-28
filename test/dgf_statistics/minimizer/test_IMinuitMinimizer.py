@@ -17,9 +17,10 @@ from dgf_statistics.minimizer.iminuitminimizer import IMinuitMinimizer
 from dgf_statistics.MonteCarlo import MonteCarlo
 
 _NevScale = 100000
+_Background = 100
 
 
-class NormalPDF(OneToOneNode):
+class Model(OneToOneNode):
     __slots__ = ("_mu", "_sigma")
     _mu: Input
     _sigma: Input
@@ -36,63 +37,100 @@ class NormalPDF(OneToOneNode):
             out[:] = _NevScale * norm.pdf(inp[:], loc=mu, scale=sigma)
 
 
+class Shift(OneToOneNode):
+    """The node to shift the data by Y axis to avoid negative bins in the MC data"""
+
+    __slots__ = "_shift"
+    _shift: float
+
+    def __init__(self, *args, shift: float = _Background, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._shift = shift
+
+    def _fcn(self):
+        for inp, out in zip(self.inputs.iter_data(), self.outputs.iter_data()):
+            out[:] = self._shift + inp[:]
+
+
 @mark.parametrize("mu", (-1.531, 2.097))
 @mark.parametrize("sigma", (0.567, 1.503))
 def test_IMinuitMinimizer_normal(mu, sigma, testname):
-    size = 101
-    x = linspace(-8, 8, size)
+    size = 201
+    x = linspace(-10, 10, size)
 
     # start values of the fitting
     mufit = mu / 2
     sigmafit = sigma * 1.5
     with Graph(close=True) as graph:
-        # setting up of true parameters
-        Mu0 = Array("mu0", [mu])
-        Sigma0 = Array("sigma0", [sigma])
+        # setting of true parameters
+        Mu0 = Array("mu 0", [mu])
+        Sigma0 = Array("sigma 0", [sigma])
         X = Array("x", x)
 
-        # build model data to do MC
-        pdf0 = NormalPDF("model")
+        # build input data for the MC simulation
+        pdf0 = Model("normal pdf for MC")
         X >> pdf0
         Mu0 >> pdf0("mu")
         Sigma0 >> pdf0("sigma")
         model = pdf0.outputs[0]
 
-        # do MC modelling
+        # perform fluctuations of data within MC and shift the result with constant background
         mc = MonteCarlo("MC", mode="normalstats")
         model >> mc
+        shiftMC = Shift("exp")
+        mc >> shiftMC
 
-        # build new model to fit MC simulations
-        MuFit = Array("mufit", [mufit])
-        SigmaFit = Array("sigmafit", [sigmafit])
-        pdffit = NormalPDF("modelfit")
+        # build a model to fit exp data
+        MuFit = Array("mu fit", [mufit])
+        SigmaFit = Array("sigma fit", [sigmafit])
+        pdffit = Model("normal pdf for the Model")
         X >> pdffit
         MuFit >> pdffit("mu")
         SigmaFit >> pdffit("sigma")
-        modelfit = pdffit.outputs[0]
+        shiftFit = Shift("Model")
+        pdffit >> shiftFit
+        modelfit = shiftFit.outputs[0]
 
         # eval errors
         cnp = CNPStat("CNP stat")
-        (mc, modelfit) >> cnp
+        (shiftMC, modelfit) >> cnp
 
         # eval Chi2
         chi = Chi2("Chi2")
-        mc >> chi("data")
+        shiftMC >> chi("data")
         modelfit >> chi("theory")
         cnp.outputs[0] >> chi("errors")
 
+    # check if the MC data is valid: negative events -> wrong model
+    assert min(shiftMC.outputs[0].data) > 0
+
+    # perform a minimization
     parmu = Parameter(parent=None, value_output=MuFit.outputs[0])
     parsigma = Parameter(parent=None, value_output=SigmaFit.outputs[0])
     minimizer = IMinuitMinimizer(statistic=chi.outputs[0], parameters=[parmu, parsigma], verbose=False)
     res = minimizer.fit()
 
+    assert res["success"]
+    assert res["nfev"] > 1
+
+    names = res["names"]
+    assert (
+        len(res["x"])
+        == len(names)
+        == len(res["errorsdict"])
+        == len(res["errors"])
+        == len(res["xdict"])
+        == res["npars"]
+        == 2
+    )
+
     atol = 2.0 / sqrt(_NevScale)
     assert allclose(res["x"], [mu, sigma], rtol=0, atol=atol)
     assert allclose(res["covariance"], minimizer.calculate_covariance(), rtol=0, atol=1e-10)
+    assert all(res["errorsdict"][key] == res["errors"][i] for i, key in enumerate(names))
 
     # errors checks
     errors = minimizer.profile_errors()
-    names = res["names"]
     assert errors["names"] == names
     errs = errors["errors"]
     assert all(abs(err) < atol for errParam in errs for err in errParam)
@@ -104,7 +142,7 @@ def test_IMinuitMinimizer_normal(mu, sigma, testname):
 
     # save plot and graph
     draw_params(res["x"], mu, sigma, minimizer, f"output/{testname}-params.png")
-    draw_fit(x, mc, model, modelfit, f"output/{testname}-plot.png")
+    draw_fit(x, shiftMC, model, modelfit, f"output/{testname}-plot.png")
     savegraph(graph, f"output/{testname}.png")
 
 
@@ -130,8 +168,8 @@ def draw_fit(x, mc, model, modelfit, figname):
     ax.grid()
     ax.set_xlabel("x")
     ax.set_ylabel("y")
-    plot_array_1d(mc.outputs[0].data, meshes=x, color="black", label="MC")
-    plot_array_1d(model.data, meshes=x, linestyle="--", label="model")
+    plot_array_1d(mc.outputs[0].data, meshes=x, color="black", label="data+fluct.")
+    plot_array_1d(model.data, meshes=x, linestyle="--", label="data")
     plot_array_1d(modelfit.data, meshes=x, linestyle="--", label="fit")
     ax.legend()
     plt.savefig(figname)
