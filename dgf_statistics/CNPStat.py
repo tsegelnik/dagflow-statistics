@@ -22,7 +22,7 @@ def _cnp(
 ) -> None:
     coeff = sqrt(3.0)
     for i in range(len(data)):
-        result[i] = coeff / sqrt(abs(1.0 / data[i] + 2.0 / theory[i]))
+        result[i] = coeff / sqrt(1.0 / data[i] + 2.0 / theory[i])
 
 
 class CNPStat(ManyToOneNode):
