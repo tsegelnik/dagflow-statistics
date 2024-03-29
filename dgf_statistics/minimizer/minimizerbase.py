@@ -2,6 +2,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from dagflow.exception import InitializationError
+from dagflow.logger import Logger, get_logger
 from dagflow.output import Output
 from dagflow.parameters import Parameter
 
@@ -28,6 +29,7 @@ class MinimizerBase:
         "_result",
         "_statistic",
         "_verbose",
+        "_logger",
     )
 
     _name: str
@@ -38,6 +40,7 @@ class MinimizerBase:
     _minimizer: Any
     _verbose: bool
     _statistic: Output
+    _logger: Logger
 
     def __init__(
         self,
@@ -46,12 +49,14 @@ class MinimizerBase:
         name: str,
         label: str,
         verbose: bool = False,
+        logger: Logger | None = None,
     ):
         if not isinstance(statistic, Output):
             raise InitializationError(
                 f"arg 'statistic' must be an Output, but given {type(statistic)=}, {statistic=}."
             )
         self._statistic = statistic
+
         self._parameters = []  # pyright: ignore
         if parameters:
             if not isinstance(parameters, Sequence):
@@ -61,6 +66,14 @@ class MinimizerBase:
                 )
             for par in parameters:
                 self.append_par(par)
+
+        if isinstance(logger, Logger):
+            self._logger = logger
+        elif logger is not None:
+            raise InitializationError(f"Cannot initialize a Minimizable class with logger={logger}")
+        else:
+            self._logger = get_logger()
+
         self._name = name
         self._label = label
         self._verbose = verbose
@@ -77,6 +90,10 @@ class MinimizerBase:
     @property
     def label(self) -> str:
         return self._label
+
+    @property
+    def logger(self) -> Logger:
+        return self._logger
 
     @statistic.setter
     def statistic(self, statistic) -> None:
@@ -114,7 +131,7 @@ class MinimizerBase:
                 errors=[],
                 fun=fun,
                 success=True,
-                message="stastitics evaluation (no parameters)",
+                summary="stastitics evaluation (no parameters)",
                 minimizer="none",
                 nfev=1,
             )
@@ -139,7 +156,7 @@ class MinimizerBase:
 
     def init_minimizable(self) -> Minimizable:
         if self._minimizable is None:
-            self._minimizable = Minimizable(self.statistic, verbose=self._verbose)
+            self._minimizable = Minimizable(self.statistic, verbose=self._verbose, logger=self._logger)
             for par in self.parameters:
                 self._minimizable.append_par(par)
         return self._minimizable

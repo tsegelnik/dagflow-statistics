@@ -18,6 +18,7 @@ from dgf_statistics.MonteCarlo import MonteCarlo
 
 _NevScale = 10000
 _Background = 100
+_verbose = False
 
 
 class Model(OneToOneNode):
@@ -108,7 +109,7 @@ def test_IMinuitMinimizer(mu, sigma, mode, testname):
     # perform a minimization
     parmu = Parameter(parent=None, value_output=MuFit.outputs[0])
     parsigma = Parameter(parent=None, value_output=SigmaFit.outputs[0])
-    minimizer = IMinuitMinimizer(statistic=chi.outputs[0], parameters=[parmu, parsigma], verbose=False)
+    minimizer = IMinuitMinimizer(statistic=chi.outputs[0], parameters=[parmu, parsigma], verbose=_verbose)
     res = minimizer.fit()
 
     assert res["success"]

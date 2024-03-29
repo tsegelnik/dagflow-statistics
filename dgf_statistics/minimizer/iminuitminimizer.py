@@ -22,7 +22,7 @@ except Exception:
 
 
 class IMinuitMinimizer(MinimizerBase):
-    __slots__ = "_errordef"
+    __slots__ = ("_errordef",)
     _errordef: float
 
     def __init__(
@@ -101,7 +101,12 @@ class IMinuitMinimizer(MinimizerBase):
 
         return minimizer
 
-    def profile_errors(self, confidence_level: float | None = None, ncall: int | None = None) -> dict:
+    def profile_errors(
+        self,
+        names: list[str] | None = None,
+        confidence_level: float | None = None,
+        ncall: int | None = None,
+    ) -> dict:
         """
         Calculates errors for parameters within the Minos algorithm.
 
@@ -110,12 +115,16 @@ class IMinuitMinimizer(MinimizerBase):
         the least-squares cost function around the minimum to construct a confidence interval.
         """
         result = {}
-        names = result["names"] = self.result["names"]
+        if names:
+            self.logger.info(f"Caclulating profile for: {names}")
+            _names = result["names"] = names
+        else:
+            _names = result["names"] = self.result["names"]
         errs = result["errors"] = []
         errsdict = result["errorsdict"] = {}
         statuses = result["errors_profile_status"] = {}
 
-        for name in names:
+        for name in _names:
             status = statuses[name] = {}
             try:
                 res = self._minimizer.minos(name, cl=confidence_level, ncall=ncall)
@@ -156,7 +165,7 @@ class IMinuitMinimizer(MinimizerBase):
         """
         scans = fitresult["scan"] = {}
         if names:
-            print("Caclulating profile for:", end=" ")
+            self.logger.info(f"Caclulating mnprofile for: {names}")
         for name in names:
             scan = scans[name] = {}
             try:
