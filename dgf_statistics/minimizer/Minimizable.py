@@ -71,7 +71,7 @@ class Minimizable:
     def _fcn_verbose(self, values: "NDArray") -> float:
         for param, val in zip(self._parameters, values):
             param.value = val
-            self._logger.info(f"{param.output.node.name} = {val}")
+            self._logger.info(f"Parameter(name='{param.output.node.name}', value={val})")
         self._ncall += 1
         ret = self._statistic.data[0]
         self._logger.info(f"Statistic({self._ncall}) = {ret}")
