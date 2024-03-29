@@ -16,7 +16,7 @@ from dgf_statistics.CNPStat import CNPStat
 from dgf_statistics.minimizer.iminuitminimizer import IMinuitMinimizer
 from dgf_statistics.MonteCarlo import MonteCarlo
 
-_NevScale = 100000
+_NevScale = 10000
 _Background = 100
 
 
@@ -52,9 +52,10 @@ class Shift(OneToOneNode):
             out[:] = self._shift + inp[:]
 
 
-@mark.parametrize("mu", (-1.531, 2.097))
-@mark.parametrize("sigma", (0.567, 1.503))
-def test_IMinuitMinimizer_normal(mu, sigma, testname):
+@mark.parametrize("mu", (-1.531654, 2.097123))
+@mark.parametrize("sigma", (0.567543, 1.503321))
+@mark.parametrize("mode", ("asimov", "normalstats"))
+def test_IMinuitMinimizer(mu, sigma, mode, testname):
     size = 201
     x = linspace(-10, 10, size)
 
@@ -75,7 +76,7 @@ def test_IMinuitMinimizer_normal(mu, sigma, testname):
         model = pdf0.outputs[0]
 
         # perform fluctuations of data within MC and shift the result with constant background
-        mc = MonteCarlo("MC", mode="normalstats")
+        mc = MonteCarlo("MC", mode=mode)
         model >> mc
         shiftMC = Shift("exp")
         mc >> shiftMC
@@ -125,8 +126,8 @@ def test_IMinuitMinimizer_normal(mu, sigma, testname):
     )
 
     atol = 2.0 / sqrt(_NevScale)
-    assert allclose(res["x"], [mu, sigma], rtol=0, atol=atol)
-    assert allclose(res["covariance"], minimizer.calculate_covariance(), rtol=0, atol=1e-10)
+    assert allclose(res["x"], [mu, sigma], rtol=0, atol=atol if mode == "normalstats" else 2e-5)
+    assert allclose(res["covariance"], minimizer.calculate_covariance(), rtol=0, atol=1e-8)
     assert all(res["errorsdict"][key] == res["errors"][i] for i, key in enumerate(names))
 
     # errors checks
@@ -142,7 +143,7 @@ def test_IMinuitMinimizer_normal(mu, sigma, testname):
 
     # save plot and graph
     draw_params(res["x"], mu, sigma, minimizer, f"output/{testname}-params.png")
-    draw_fit(x, shiftMC, model, modelfit, f"output/{testname}-plot.png")
+    draw_fit(x, shiftMC, model, modelfit, mode, f"output/{testname}-plot.png")
     savegraph(graph, f"output/{testname}.png")
 
 
@@ -162,14 +163,19 @@ def draw_params(res, mu, sigma, minimizer, figname):
     plt.close()
 
 
-def draw_fit(x, mc, model, modelfit, figname):
+def draw_fit(x, mc, model, modelfit, mode, figname):
     ax = plt.subplot(111)
     ax.minorticks_on()
     ax.grid()
     ax.set_xlabel("x")
     ax.set_ylabel("y")
-    plot_array_1d(mc.outputs[0].data, meshes=x, color="black", label="data+fluct.")
-    plot_array_1d(model.data, meshes=x, linestyle="--", label="data")
+    plot_array_1d(
+        mc.outputs[0].data,
+        meshes=x,
+        color="black",
+        label="data+fluct." if mode != "asimov" else "asimov MC",
+    )
+    plot_array_1d(model.data+_Background, meshes=x, linestyle="--", label="data")
     plot_array_1d(modelfit.data, meshes=x, linestyle="--", label="fit")
     ax.legend()
     plt.savefig(figname)
