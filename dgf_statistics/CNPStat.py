@@ -40,6 +40,7 @@ class CNPStat(ManyToOneNode):
 
     .. note:: The node must have only 2N inputs!
     """
+    __slots__ = ()
 
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, *args, **kwargs)
