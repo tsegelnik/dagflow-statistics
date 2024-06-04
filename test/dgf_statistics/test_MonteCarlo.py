@@ -12,8 +12,6 @@ from dagflow.graphviz import savegraph
 from dagflow.lib import Array
 from dagflow.plot import add_colorbar, closefig, plot_array_1d, plot_auto, savefig
 
-seed(6)
-
 @mark.parametrize("scale", [0.1, 100.0, 10000.0])
 @mark.parametrize(
     "mcmode",
@@ -27,6 +25,7 @@ seed(6)
 )
 @mark.parametrize("datanum", [0, 1, 2, "all"])
 def test_mc(mcmode, scale, datanum, debug_graph, testname, tmp_path):
+    seed(6)
     size = 20
     data1 = ones(size, dtype="d") * scale
     data2 = (1.0 + arange(size, dtype="d")) * scale
