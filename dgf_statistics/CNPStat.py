@@ -4,7 +4,7 @@ from numba import float64, njit, void
 from numpy import double
 from numpy.typing import NDArray
 
-from dagflow.lib.ManyToOneNode import ManyToOneNode
+from dagflow.lib.BlockToOneNode import BlockToOneNode
 from dagflow.typefunctions import (
     AllPositionals,
     check_input_dimension,
@@ -25,7 +25,7 @@ def _cnp(
         result[i] = coeff / sqrt(1.0 / data[i] + 2.0 / theory[i])
 
 
-class CNPStat(ManyToOneNode):
+class CNPStat(BlockToOneNode):
     r"""
     Combined Neyman–Pearson statistic uncertainty:
         errors = sqrt(3) / sqrt(1/dataᵢ+2/theoryᵢ), so if we connect it to `Chi2` node we get

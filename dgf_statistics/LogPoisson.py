@@ -79,7 +79,7 @@ class LogPoisson(MetaNode):
 #           "LogPoissonMain": "LogPoisson",
 #        }
 #        labels: Mapping = {},
-#        replicate: Tuple[KeyLike, ...] = ((),),
+#        replicate_outputs: Tuple[KeyLike, ...] = ((),),
 #    ) -> Tuple["LogPoisson", "NodeStorage"]:
 #        storage = NodeStorage(default_containers=True)
 #        nodes = storage("nodes")
@@ -94,7 +94,7 @@ class LogPoisson(MetaNode):
 #        outputs[key_LogPoissonConst + ("const",)] = logPoissons._LogPoissonConst.outputs["const"]
 #
 #        label_int = labels.get("LogPoisson", {})
-#        for key in replicate:
+#        for key in replicate_outputs:
 #            if isinstance(key, str):
 #                key = (key,)
 #            name = ".".join(key_LogPoissonMain + key)
