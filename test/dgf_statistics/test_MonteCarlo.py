@@ -46,6 +46,7 @@ def test_mc(mcmode, scale, datanum, debug_graph, testname, tmp_path):
         toymc = MonteCarlo(name="MonteCarlo", mode=mcmode)
         for mcdata in mcdata_v:
             mcdata.inputs >> toymc
+    assert not toymc.frozen
 
     list(
         map(
@@ -269,8 +270,12 @@ class MCTestData:
 
         mcobject = self.mcobject
         self.first_data = mcobject.outputs[output_index].data.copy()
+        assert mcobject.frozen
+
         self.mcobject.next_sample()
+        assert mcobject.frozen
         self.second_data = mcobject.outputs[output_index].data.copy()
+        assert mcobject.frozen
         self.mcdiff_nextSample = self.first_data - self.second_data
 
         if self.mctype == "asimov":

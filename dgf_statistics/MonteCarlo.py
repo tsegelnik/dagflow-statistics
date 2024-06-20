@@ -109,6 +109,9 @@ class MonteCarlo(BlockToOneNode):
 
         raise RuntimeError(f"Invalid montecarlo mode {mode}. Expect: {MonteCarloModes}")
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, auto_freeze=True, **kwargs)
+
     @property
     def mode(self) -> str:
         return self._mode
