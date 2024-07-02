@@ -30,6 +30,7 @@ class MinimizerBase:
         "_statistic",
         "_verbose",
         "_logger",
+        "_initial_parameters",
     )
 
     _name: str
@@ -41,6 +42,7 @@ class MinimizerBase:
     _verbose: bool
     _statistic: Output
     _logger: Logger
+    _initial_parameters: dict[Parameter, float] | None
 
     def __init__(
         self,
@@ -56,6 +58,7 @@ class MinimizerBase:
                 f"arg 'statistic' must be an Output, but given {type(statistic)=}, {statistic=}."
             )
         self._statistic = statistic
+        self._initial_parameters = {}
 
         self._parameters = []  # pyright: ignore
         if parameters:
@@ -66,6 +69,7 @@ class MinimizerBase:
                 )
             for par in parameters:
                 self.append_par(par)
+                self.copy_initial_values(par)
 
         if isinstance(logger, Logger):
             self._logger = logger
@@ -111,6 +115,13 @@ class MinimizerBase:
     @property
     def result(self) -> dict:
         return self._result
+
+    def copy_initial_values(self, par: Parameter) -> None:
+        self._initial_parameters.update({par: par.value.copy()})
+
+    def push_initial_values(self) -> None:
+        for par, value in self._initial_parameters.items():
+            par.push(value)
 
     def append_par(self, par: Parameter) -> None:
         if not isinstance(par, Parameter):
