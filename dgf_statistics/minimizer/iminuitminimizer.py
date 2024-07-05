@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from iminuit import Minuit
@@ -27,8 +29,8 @@ class IMinuitMinimizer(MinimizerBase):
 
     def __init__(
         self,
-        statistic: "Output",
-        parameters: list["Parameter"],
+        statistic: Output,
+        parameters: list[Parameter],
         name: str = "iminuit",
         label: str = "iminuit",
         errordef: float = 1.0,  # 1.0: LEAST_SQUARES, 0.5: LIKELIHOOD

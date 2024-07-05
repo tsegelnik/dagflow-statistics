@@ -1,15 +1,24 @@
-from typing import TYPE_CHECKING
+from __future__ import annotations
 
-from numba import njit
-from numpy import double, empty, square, subtract
-from numpy.typing import NDArray
-from scipy.linalg import solve_triangular
+from typing import TYPE_CHECKING
 
 from dagflow.exception import TypeFunctionError
 from dagflow.lib import ManyToOneNode
+from dagflow.typefunctions import (
+    check_input_dimension,
+    check_input_square,
+    check_inputs_multiplicable_mat,
+    check_inputs_multiplicity,
+    check_inputs_same_shape,
+)
+from numba import njit
+from numpy import empty, square, subtract
+from scipy.linalg import solve_triangular
 
 if TYPE_CHECKING:
     from dagflow.node import Input, Output
+    from numpy import double
+    from numpy.typing import NDArray
 
 
 @njit(cache=True)
@@ -50,10 +59,10 @@ class Chi2(ManyToOneNode):
         "_buffer",
     )
 
-    _data_tuple: tuple["Input"]
-    _theory_tuple: tuple["Input"]
-    _errors_tuple: tuple["Input"]
-    _result: "Output"
+    _data_tuple: tuple[Input]
+    _theory_tuple: tuple[Input]
+    _errors_tuple: tuple[Input]
+    _result: Output
     _buffer: NDArray
     _matrix_is_lower: bool
 
@@ -87,22 +96,16 @@ class Chi2(ManyToOneNode):
         ret = self._result.data
         ret[0] = 0.0
 
-        for theory, data, errors in zip(
-            self._theory_tuple, self._data_tuple, self._errors_tuple
-        ):
+        for theory, data, errors in zip(self._theory_tuple, self._data_tuple, self._errors_tuple):
             _chi2_1d(theory.data, data.data, errors.data, ret)
 
     def _fcn_2d(self) -> None:
         buffer = self._buffer
         ret = 0.0
-        for theory, data, errors in zip(
-            self._theory_tuple, self._data_tuple, self._errors_tuple
-        ):
+        for theory, data, errors in zip(self._theory_tuple, self._data_tuple, self._errors_tuple):
             # errors is triangular decomposition of covariance matrix (L)
             subtract(theory.data, data.data, out=buffer)
-            solve_triangular(
-                errors.data, buffer, lower=self.matrix_is_lower, overwrite_b=True
-            )
+            solve_triangular(errors.data, buffer, lower=self.matrix_is_lower, overwrite_b=True)
             square(buffer, out=buffer)
             ret += buffer.sum()
 
@@ -110,12 +113,6 @@ class Chi2(ManyToOneNode):
 
     def _typefunc(self) -> None:
         """A output takes this function to determine the dtype and shape"""
-        from dagflow.typefunctions import (check_input_dimension,
-                                           check_input_square,
-                                           check_inputs_multiplicable_mat,
-                                           check_inputs_multiplicity,
-                                           check_inputs_same_shape)
-
         check_inputs_multiplicity(self, 3)
         self._data_tuple = tuple(self.inputs[::3])  # input: 0
         self._theory_tuple = tuple(self.inputs[1::3])  # input: 1

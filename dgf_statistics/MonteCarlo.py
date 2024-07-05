@@ -1,17 +1,22 @@
-from typing import Literal
-
-from numba import float64, njit, void
-from numpy import add, double, matmul, sqrt
-from numpy.random import normal, poisson
-from numpy.typing import NDArray
+from __future__ import annotations
+from typing import TYPE_CHECKING, Literal
 
 from dagflow.exception import InitializationError
 from dagflow.lib import BlockToOneNode
-from dagflow.typefunctions import (check_input_matrix_or_diag,
-                                   check_inputs_multiplicable_mat,
-                                   check_inputs_multiplicity,
-                                   check_outputs_number,
-                                   copy_from_input_to_output)
+from dagflow.typefunctions import (
+    check_input_matrix_or_diag,
+    check_inputs_multiplicable_mat,
+    check_inputs_multiplicity,
+    check_outputs_number,
+    copy_from_input_to_output,
+)
+from numba import float64, njit, void
+from numpy import add, matmul, sqrt
+from numpy.random import normal, poisson
+
+if TYPE_CHECKING:
+    from numpy import double
+    from numpy.typing import NDArray
 
 MonteCarloModes = {"asimov", "normal", "normalstats", "poisson", "covariance"}
 ModeType = Literal[MonteCarloModes]
@@ -23,9 +28,7 @@ MonteCarloModes2 = {"normal", "covariance"}
 ModeType2 = Literal[MonteCarloModes2]
 
 
-def _covariance_L(
-    mean: NDArray[double], cov_L: NDArray[double], result: NDArray[double]
-) -> None:
+def _covariance_L(mean: NDArray[double], cov_L: NDArray[double], result: NDArray[double]) -> None:
     if cov_L.ndim == 1:
         _covariance_L_1d(mean, cov_L, result)
     else:
@@ -33,9 +36,7 @@ def _covariance_L(
 
 
 @njit(void(float64[:], float64[:], float64[:]), cache=True)
-def _covariance_L_1d(
-    mean: NDArray[double], cov_L: NDArray[double], result: NDArray[double]
-) -> None:
+def _covariance_L_1d(mean: NDArray[double], cov_L: NDArray[double], result: NDArray[double]) -> None:
     for i in range(len(result)):
         result[i] = mean[i] + cov_L[i] * normal()
 
@@ -46,18 +47,14 @@ def _fill_normal(data: NDArray[double]) -> None:
         data[i] = normal()
 
 
-def _covariance_L_2d(
-    mean: NDArray[double], cov_L: NDArray[double], result: NDArray[double]
-) -> None:
+def _covariance_L_2d(mean: NDArray[double], cov_L: NDArray[double], result: NDArray[double]) -> None:
     _fill_normal(result)
     matmul(cov_L, result, out=result)
     add(result, mean, out=result)
 
 
 @njit(void(float64[:], float64[:], float64[:]), cache=True)
-def _normal(
-    mean: NDArray[double], errors: NDArray[double], result: NDArray[double]
-) -> None:
+def _normal(mean: NDArray[double], errors: NDArray[double], result: NDArray[double]) -> None:
     for i in range(len(result)):
         result[i] = mean[i] + errors[i] * normal()
 
@@ -149,9 +146,7 @@ class MonteCarlo1(MonteCarlo):
         **kwargs,
     ):
         if mode not in MonteCarloModes1:
-            raise RuntimeError(
-                f"Invalid montecarlo mode {mode}. Expect: {MonteCarloModes1}"
-            )
+            raise RuntimeError(f"Invalid montecarlo mode {mode}. Expect: {MonteCarloModes1}")
 
         self._mode = mode
         super().__init__(name, *args, **kwargs)
@@ -226,9 +221,7 @@ class MonteCarlo2(MonteCarlo):
         **kwargs,
     ):
         if mode not in MonteCarloModes2:
-            raise RuntimeError(
-                f"Invalid montecarlo mode {mode}. Expect: {MonteCarloModes2}"
-            )
+            raise RuntimeError(f"Invalid montecarlo mode {mode}. Expect: {MonteCarloModes2}")
 
         self._mode = mode
         super().__init__(name, *args, **kwargs)
@@ -261,17 +254,13 @@ class MonteCarlo2(MonteCarlo):
     def _fcn_covariance_L(self) -> None:
         i = 0
         while i < self.inputs.len_pos():
-            _covariance_L(
-                self.inputs[i].data, self.inputs[i + 1].data, self.outputs[i // 2].data
-            )
+            _covariance_L(self.inputs[i].data, self.inputs[i + 1].data, self.outputs[i // 2].data)
             i += 2
 
     def _fcn_normal(self) -> None:
         i = 0
         while i < self.inputs.len_pos():
-            _normal(
-                self.inputs[i].data, self.inputs[i + 1].data, self.outputs[i // 2].data
-            )
+            _normal(self.inputs[i].data, self.inputs[i + 1].data, self.outputs[i // 2].data)
             i += 2
 
     def _typefunc(self) -> None:
