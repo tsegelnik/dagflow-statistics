@@ -1,20 +1,25 @@
-from dgf_statistics.LogPoissonConst import LogPoissonConst
-from dgf_statistics.LogPoissonConst import ModeType
-from dgf_statistics.LogPoissonMain import LogPoissonMain
-from collections.abc import Mapping
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from dagflow.metanode import MetaNode
 
+from dgf_statistics.LogPoissonConst import LogPoissonConst
+from dgf_statistics.LogPoissonMain import LogPoissonMain
+
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from dagflow.node import Node
+
+    from dgf_statistics.LogPoissonConst import ModeType
 
 
 class LogPoisson(MetaNode):
     __slots__ = ("_LogPoissonConst", "_LogPoissonMain")
 
-    _LogPoissonConst: "Node"
-    _LogPoissonMain: "Node"
+    _LogPoissonConst: Node
+    _LogPoissonMain: Node
 
     def __init__(
         self,

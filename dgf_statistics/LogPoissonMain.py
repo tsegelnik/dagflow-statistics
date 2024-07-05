@@ -1,19 +1,18 @@
+from __future__ import annotations
+
 from math import log
 from typing import TYPE_CHECKING
 
 from dagflow.inputhandler import MissingInputAddOne
-from dagflow.nodes import FunctionNode
-from dagflow.typefunctions import check_inputs_multiplicity
-from dagflow.typefunctions import check_inputs_same_shape
-from numba import float64
-from numba import njit
-from numba import void
-from numpy import double
-from numpy.typing import NDArray
+from dagflow.node import Node
+from dagflow.typefunctions import check_inputs_multiplicity, check_inputs_same_shape
+from numba import float64, njit, void
 
 if TYPE_CHECKING:
     from dagflow.input import Input
     from dagflow.output import Output
+    from numpy import double
+    from numpy.typing import NDArray
 
 
 @njit(void(float64[:], float64[:], float64[:]), cache=True)
@@ -28,7 +27,7 @@ def _poisson_main(
         poisson[0] += func(theory[i], data[i])
 
 
-class LogPoissonMain(FunctionNode):
+class LogPoissonMain(Node):
     r"""
     Calculates the Poisson loglikelihood function value.
 
@@ -47,10 +46,10 @@ class LogPoissonMain(FunctionNode):
 
     __slots__ = ("_theory", "_data", "_const", "_poisson")
 
-    _theory: "Input"
-    _data: "Input"
-    _const: "Input"
-    _poisson: "Output"
+    _theory: Input
+    _data: Input
+    _const: Input
+    _poisson: Output
 
     def __init__(self, name, *args, **kwargs):
         kwargs.setdefault("missing_input_handler", MissingInputAddOne())

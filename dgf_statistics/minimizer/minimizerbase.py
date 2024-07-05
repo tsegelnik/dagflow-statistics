@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from collections.abc import Sequence
-from typing import Any
+from typing import TYPE_CHECKING
 
 from dagflow.exception import InitializationError
 from dagflow.logger import Logger, get_logger
@@ -17,6 +19,9 @@ try:
 except Exception:
     from dagflow.exception import DagflowError  # fmt:skip
     CppRuntimeError = DagflowError
+
+if TYPE_CHECKING:
+    from typing import Any
 
 
 class MinimizerBase:

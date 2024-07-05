@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
@@ -7,8 +9,9 @@ from dagflow.output import Output
 from dagflow.parameters import Parameter
 
 if TYPE_CHECKING:
-    from numpy.typing import NDArray
     from typing import Callable
+
+    from numpy.typing import NDArray
 
 
 class Minimizable:
@@ -18,7 +21,7 @@ class Minimizable:
     _parameters: list[Parameter]
     _verbose: bool
     _functions: dict
-    _fcn: "Callable"
+    _fcn: Callable
     _ncall: int
     _logger: Logger
 

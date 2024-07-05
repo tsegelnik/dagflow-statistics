@@ -1,8 +1,7 @@
-from math import sqrt
+from __future__ import annotations
 
-from numba import float64, njit, void
-from numpy import double
-from numpy.typing import NDArray
+from math import sqrt
+from typing import TYPE_CHECKING
 
 from dagflow.lib.BlockToOneNode import BlockToOneNode
 from dagflow.typefunctions import (
@@ -12,6 +11,11 @@ from dagflow.typefunctions import (
     check_inputs_same_shape,
     copy_from_input_to_output,
 )
+from numba import float64, njit, void
+
+if TYPE_CHECKING:
+    from numpy import double
+    from numpy.typing import NDArray
 
 
 @njit(void(float64[:], float64[:], float64[:]), cache=True)
@@ -40,6 +44,7 @@ class CNPStat(BlockToOneNode):
 
     .. note:: The node must have only 2N inputs!
     """
+
     __slots__ = ()
 
     def __init__(self, name, *args, **kwargs):

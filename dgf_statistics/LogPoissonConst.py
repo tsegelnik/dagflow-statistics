@@ -1,20 +1,18 @@
-from math import lgamma
-from math import log
-from typing import Literal
-from typing import TYPE_CHECKING
+from __future__ import annotations
+
+from math import lgamma, log
+from typing import TYPE_CHECKING, Literal
 
 from dagflow.exception import InitializationError
 from dagflow.inputhandler import MissingInputAddOne
-from dagflow.nodes import FunctionNode
-from numba import float64
-from numba import njit
-from numba import void
-from numpy import double
-from numpy.typing import NDArray
+from dagflow.node import Node
+from numba import float64, njit, void
 
 if TYPE_CHECKING:
     from dagflow.input import Input
     from dagflow.output import Output
+    from numpy import double
+    from numpy.typing import NDArray
 
 
 LogPoissonModes = {"poisson", "poisson_ratio"}
@@ -36,7 +34,7 @@ def _const_poisson(data: NDArray[double], const: NDArray[double]):
         const[0] += lgamma(data[i] + 1)
 
 
-class LogPoissonConst(FunctionNode):
+class LogPoissonConst(Node):
     r"""
     Calculates `const`-part for the`LogPoisson` node.
 
@@ -54,8 +52,8 @@ class LogPoissonConst(FunctionNode):
 
     __slots__ = ("_data", "_const", "_mode")
 
-    _data: "Input"
-    _const: "Output"
+    _data: Input
+    _const: Output
     _mode: ModeType
 
     def __init__(self, name, mode: ModeType = "poisson_ratio", *args, **kwargs):
@@ -79,9 +77,7 @@ class LogPoissonConst(FunctionNode):
         self._mode = mode
         self._data = self._add_input("data")  # input: 0
         self._const = self._add_output("const")  # output: 0
-        self._functions.update(
-            {"poisson_ratio": self._fcn_poisson_ratio, "poisson": self._fcn_poisson}
-        )
+        self._functions.update({"poisson_ratio": self._fcn_poisson_ratio, "poisson": self._fcn_poisson})
 
     @property
     def mode(self) -> ModeType:
