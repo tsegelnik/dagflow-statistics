@@ -93,6 +93,10 @@ def test_IMinuitMinimizer(mu, sigma, mode, testname):
         pdffit >> shiftFit
         modelfit = shiftFit.outputs[0]
 
+        # TODO: update pathsd set
+        MuFit._output.node.labels.paths.append("fit.mu")
+        SigmaFit._output.node.labels.paths.append("fit.sigma")
+
         # eval errors
         cnp = CNPStat("CNP stat")
         (shiftMC, modelfit) >> cnp

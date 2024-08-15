@@ -43,7 +43,7 @@ class IMinuitMinimizer(MinimizerBase):
         """
         Run Migrad minimization.
 
-        Migrad from the Minuit2 library is a robust minimisation algorithm,
+        Migrad from the Minuit2 library is a robust minimization algorithm,
         which uses first and approximate second derivatives
         to achieve quadratic convergence near the minimum.
         """
@@ -51,6 +51,7 @@ class IMinuitMinimizer(MinimizerBase):
         iterate = kwargs.pop("iterate", 5)  # N calls if convergence was not reached; default: 5
 
         result = self.init_minimizer()
+        fmin = None
         with FitResult() as fr:
             try:
                 result = self._minimizer.migrad(ncall=ncall, iterate=iterate)
@@ -60,9 +61,10 @@ class IMinuitMinimizer(MinimizerBase):
                 message = repr(exc)
             else:
                 # the message by default has str, html and pretty representations,
-                # but we build a dict using slots with comlete information
+                # but we build a dict using slots with complete information
                 fmin = result.fmin
                 message = {key[1:]: getattr(fmin, key) for key in fmin.__slots__}
+        if fmin:
             fr.set(
                 x=array(result.values),
                 errors=array(result.errors),
@@ -94,7 +96,8 @@ class IMinuitMinimizer(MinimizerBase):
         startvalues = []
         names = []
         for par in self._parameters:
-            names.append(par.output.node.name)
+            # TODO: wrap path getter into Parameter method
+            names.append(par.output.node.labels.path)
             startvalues.append(par.value)
 
         self._minimizer = minimizer = Minuit(fcn, *startvalues, name=names)

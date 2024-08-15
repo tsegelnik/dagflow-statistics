@@ -142,17 +142,17 @@ class MinimizerBase:
         with FitResult() as fr:
             fun = self._statistic.data
 
-            fr.set(
-                x=[],
-                errors=[],
-                fun=fun,
-                success=True,
-                summary="stastitics evaluation (no parameters)",
-                minimizer="none",
-                nfev=1,
-            )
-            self._result = fr.result
-            self.patchresult()
+        fr.set(
+            x=[],
+            errors=[],
+            fun=fun,
+            success=True,
+            summary="stastitics evaluation (no parameters)",
+            minimizer="none",
+            nfev=1,
+        )
+        self._result = fr.result
+        self.patchresult()
 
         return self.result
 
@@ -160,7 +160,7 @@ class MinimizerBase:
         raise NotImplementedError("The method must be overriden!")
 
     def patchresult(self) -> None:
-        names = [par.output.node.name for par in self.parameters]
+        names = [par.output.node.labels.path for par in self.parameters]
         result = self._result
         result["npars"] = len(self.parameters)
         result["names"] = names
