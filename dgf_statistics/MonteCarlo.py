@@ -115,7 +115,7 @@ class MonteCarlo(BlockToOneNode):
 
     def next_sample(self) -> None:
         self.unfreeze()
-        self.taint(force=True)
+        self.taint(force_computation=True)
 
 
 class MonteCarlo1(MonteCarlo):
