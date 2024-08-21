@@ -9,13 +9,13 @@ def pytest_sessionstart(session):
     Called after the Session object has been created and
     before performing collection and entering the run test loop.
 
-    Automatic change path to the `dagflow-statistics/test` and create `test/output` dir
+    Automatic change path to the `dagflow-statistics/tests` and create `tests/output` dir
     """
     while path := getcwd():
         if (lastdir := path.split("/")[-1]) == "test":
             break
         elif ".git" in listdir(path):
-            chdir("./test")
+            chdir("./tests")
             break
         else:
             chdir("..")
