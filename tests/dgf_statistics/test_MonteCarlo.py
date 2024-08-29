@@ -4,7 +4,7 @@ from dgf_statistics.MonteCarlo import MonteCarlo
 from matplotlib import pyplot as plt
 from numpy import allclose, arange, diag, dot, eye, fabs, fill_diagonal, ones
 from numpy.linalg import cholesky, inv
-from numpy.random import seed
+from numpy.random import Generator, SeedSequence, MT19937
 from pytest import mark
 
 from dagflow.graph import Graph
@@ -25,14 +25,16 @@ from dagflow.plot import add_colorbar, closefig, plot_array_1d, plot_auto, savef
 )
 @mark.parametrize("datanum", [0, 1, 2, "all"])
 def test_mc(mcmode, scale, datanum, debug_graph, testname, tmp_path):
-    seed(6)
+    sequence, = SeedSequence(6).spawn(1)
+    algo = MT19937(sequence)
+    generator = Generator(algo)
     size = 20
     data1 = ones(size, dtype="d") * scale
     data2 = (1.0 + arange(size, dtype="d")) * scale
     data3 = (size - arange(size, dtype="d")) * scale
     data = (data1, data2, data3)
 
-    with Graph(close_on_exit=True, debug=debug_graph) as graph:
+    with Graph(close=True, debug=debug_graph) as graph:
         if datanum == "all":
             mcdata_v = tuple(
                 MCTestData(data, mcmode, index=-i - 1, scale=scale)
@@ -43,7 +45,7 @@ def test_mc(mcmode, scale, datanum, debug_graph, testname, tmp_path):
                 MCTestData(data[datanum], mcmode, index=datanum + 1, scale=scale),
             )
 
-        toymc = MonteCarlo(name="MonteCarlo", mode=mcmode)
+        toymc = MonteCarlo(name="MonteCarlo", mode=mcmode, generator=generator)
         for mcdata in mcdata_v:
             mcdata.inputs >> toymc
     assert not toymc.frozen

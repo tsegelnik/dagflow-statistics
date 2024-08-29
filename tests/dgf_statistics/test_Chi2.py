@@ -19,7 +19,7 @@ def test_Chi2_01(debug_graph, testname):
     theoryArr = dataArr + offset
     statArr = dataArr**0.5
 
-    with Graph(close_on_exit=True, debug=debug_graph) as graph:
+    with Graph(close=True, debug=debug_graph) as graph:
         data = Array("data", dataArr, mark="Data")
         theory = Array("theory", theoryArr, mark="Theory")
         stat = Array("staterr", statArr, mark="Stat errors")
@@ -46,7 +46,7 @@ def test_Chi2_02(debug_graph, testname):
     covmat = diag(dataArr)
     Lmat = cholesky(covmat)
 
-    with Graph(close_on_exit=True, debug=debug_graph) as graph:
+    with Graph(close=True, debug=debug_graph) as graph:
         data = Array("data", dataArr, mark="Data")
         theory = Array("theory", theoryArr, mark="Theory")
         L = Array("L", Lmat, mark="Stat errors (cholesky)")
@@ -72,7 +72,7 @@ def test_Chi2_03(duplicate: bool, debug_graph, testname):
     covmat = diag(dataArr) + 2.0
     Lmat = cholesky(covmat)
 
-    with Graph(close_on_exit=True, debug=debug_graph) as graph:
+    with Graph(close=True, debug=debug_graph) as graph:
         data = Array("data", dataArr, mark="Data")
         theory = Array("theory", theoryArr, mark="Theory")
         L = Array("L", Lmat, mark="Stat errors (cholesky)")
@@ -101,7 +101,7 @@ def test_Chi2CNPStat_v01(debug_graph, testname):
     dataa = arange(start, start + n, dtype="d") + 1
     theorya = dataa + offset
 
-    with Graph(close_on_exit=True, debug=debug_graph) as graph:
+    with Graph(close=True, debug=debug_graph) as graph:
         data = Array("data", dataa, mark="Data")
         theory = Array("theory", theorya, mark="Theory")
         cnp = CNPStat(name="cnp", label="CNP stat. uncertainty")

@@ -18,7 +18,7 @@ def test_LogPoisson_01(debug_graph, testname, mode):
     dataArr = arange(start, start + n, dtype="d")
     theoryArr = dataArr + offset
 
-    with Graph(close_on_exit=True, debug=debug_graph) as graph:
+    with Graph(close=True, debug=debug_graph) as graph:
         data = Array("data", dataArr, mark="Data")
         theory = Array("theory", theoryArr, mark="Theory")
         logPoisson = LogPoisson(mode=mode)
