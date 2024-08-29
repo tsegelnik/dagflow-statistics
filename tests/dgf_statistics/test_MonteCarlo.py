@@ -34,7 +34,7 @@ def test_mc(mcmode, scale, datanum, debug_graph, testname, tmp_path):
     data3 = (size - arange(size, dtype="d")) * scale
     data = (data1, data2, data3)
 
-    with Graph(close=True, debug=debug_graph) as graph:
+    with Graph(close_on_exit=True, debug=debug_graph) as graph:
         if datanum == "all":
             mcdata_v = tuple(
                 MCTestData(data, mcmode, index=-i - 1, scale=scale)

@@ -64,7 +64,7 @@ def test_IMinuitMinimizer(mu, sigma, mode, testname):
     # start values of the fitting
     mufit = mu / 2
     sigmafit = sigma * 1.5
-    with Graph(close=True) as graph:
+    with Graph(close_on_exit=True) as graph:
         # setting of true parameters
         Mu0 = Array("mu 0", [mu])
         Sigma0 = Array("sigma 0", [sigma])
