@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Literal
 from dagflow.exception import InitializationError
 from dagflow.inputhandler import MissingInputAddOne
 from dagflow.node import Node
-from numba import float64, njit, void
+from numba import njit
 
 if TYPE_CHECKING:
     from dagflow.input import Input
@@ -19,7 +19,7 @@ LogPoissonModes = {"poisson", "poisson_ratio"}
 ModeType = Literal[LogPoissonModes]
 
 
-@njit(void(float64[:], float64[:]), cache=True)
+@njit(cache=True)
 def _const_poisson_ratio(data: NDArray[double], const: NDArray[double]):
     r"""$\sum \log(theory_i) \approx \sum (theory_i * \log(theory_i) - theory_i)$"""
     func = lambda x: x * log(x) - x if x not in {0.0, 1.0} else 0
@@ -27,7 +27,7 @@ def _const_poisson_ratio(data: NDArray[double], const: NDArray[double]):
         const[0] += func(data[i])
 
 
-@njit(void(float64[:], float64[:]), cache=True)
+@njit(cache=True)
 def _const_poisson(data: NDArray[double], const: NDArray[double]):
     r"""$\sum \log(theory_i) = \sum \log(\Gamma(theory_i + 1))$"""
     for i in range(len(data)):

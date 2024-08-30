@@ -11,14 +11,14 @@ from dagflow.typefunctions import (
     check_inputs_same_shape,
     copy_from_input_to_output,
 )
-from numba import float64, njit, void
+from numba import njit
 
 if TYPE_CHECKING:
     from numpy import double
     from numpy.typing import NDArray
 
 
-@njit(void(float64[:], float64[:], float64[:]), cache=True)
+@njit(cache=True)
 def _cnp(
     data: NDArray[double],
     theory: NDArray[double],

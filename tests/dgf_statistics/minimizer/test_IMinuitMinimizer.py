@@ -2,6 +2,7 @@ from math import sqrt
 
 from matplotlib import pyplot as plt  # fmt:skip
 from numpy import allclose, linspace
+from numpy.random import Generator, SeedSequence, MT19937
 from pytest import mark
 from scipy.stats import norm
 
@@ -77,7 +78,9 @@ def test_IMinuitMinimizer(mu, sigma, mode, testname):
         model = pdf0.outputs[0]
 
         # perform fluctuations of data within MC and shift the result with constant background
-        mc = MonteCarlo("MC", mode=mode)
+        sequence, = SeedSequence(0).spawn(1)
+        gen = Generator(MT19937(sequence))
+        mc = MonteCarlo("MC", mode=mode, generator=gen)
         model >> mc
         shiftMC = Shift("exp")
         mc >> shiftMC
