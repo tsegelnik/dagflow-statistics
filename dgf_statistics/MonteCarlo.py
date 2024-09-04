@@ -1,5 +1,9 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING, Literal
+
+from numba import njit
+from numpy import add, matmul, sqrt
 
 from dagflow.exception import InitializationError
 from dagflow.lib import BlockToOneNode
@@ -10,12 +14,10 @@ from dagflow.typefunctions import (
     check_outputs_number,
     copy_from_input_to_output,
 )
-from numba import njit
-from numpy import add, matmul, sqrt
-from numpy.random import Generator
 
 if TYPE_CHECKING:
     from numpy import double
+    from numpy.random import Generator
     from numpy.typing import NDArray
 
 MonteCarloModes = {"asimov", "normal", "normalstats", "poisson", "covariance"}
@@ -28,7 +30,12 @@ MonteCarloModes2 = {"normal", "covariance"}
 ModeType2 = Literal[MonteCarloModes2]
 
 
-def _covariance_L(mean: NDArray[double], cov_L: NDArray[double], result: NDArray[double], gen: Generator) -> None:
+def _covariance_L(
+    mean: NDArray[double],
+    cov_L: NDArray[double],
+    result: NDArray[double],
+    gen: Generator,
+) -> None:
     if cov_L.ndim == 1:
         _covariance_L_1d(mean, cov_L, result, gen)
     else:
@@ -36,7 +43,12 @@ def _covariance_L(mean: NDArray[double], cov_L: NDArray[double], result: NDArray
 
 
 @njit(cache=True)
-def _covariance_L_1d(mean: NDArray[double], cov_L: NDArray[double], result: NDArray[double], gen: Generator) -> None:
+def _covariance_L_1d(
+    mean: NDArray[double],
+    cov_L: NDArray[double],
+    result: NDArray[double],
+    gen: Generator,
+) -> None:
     for i in range(len(result)):
         result[i] = mean[i] + cov_L[i] * gen.normal()
 
@@ -47,20 +59,32 @@ def _fill_normal(data: NDArray[double], gen: Generator) -> None:
         data[i] = gen.normal()
 
 
-def _covariance_L_2d(mean: NDArray[double], cov_L: NDArray[double], result: NDArray[double], gen: Generator) -> None:
+def _covariance_L_2d(
+    mean: NDArray[double],
+    cov_L: NDArray[double],
+    result: NDArray[double],
+    gen: Generator,
+) -> None:
     _fill_normal(result, gen)
     matmul(cov_L, result, out=result)
     add(result, mean, out=result)
 
 
 @njit(cache=True)
-def _normal(mean: NDArray[double], errors: NDArray[double], result: NDArray[double], gen: Generator) -> None:
+def _normal(
+    mean: NDArray[double],
+    errors: NDArray[double],
+    result: NDArray[double],
+    gen: Generator,
+) -> None:
     for i in range(len(result)):
         result[i] = mean[i] + errors[i] * gen.normal()
 
 
 @njit(cache=True)
-def _normal_stats(mean: NDArray[double], result: NDArray[double], gen: Generator) -> None:
+def _normal_stats(
+    mean: NDArray[double], result: NDArray[double], gen: Generator
+) -> None:
     func = lambda x: x + sqrt(x) * gen.normal()
     for i in range(len(result)):
         result[i] = func(mean[i])
@@ -93,12 +117,23 @@ class MonteCarlo(BlockToOneNode):
             * `covariance`: multivariate normal distribution using L-decomposition of the covariance matrix
     """
 
-    __slots__ = ("_mode", "_generator",)
+    __slots__ = (
+        "_mode",
+        "_generator",
+    )
 
     _mode: ModeType
     _generator: Generator
 
-    def __new__(cls, name, mode: ModeType, generator: Generator, *args, _baseclass: bool = True, **kwargs):
+    def __new__(
+        cls,
+        name,
+        mode: ModeType,
+        generator: Generator,
+        *args,
+        _baseclass: bool = True,
+        **kwargs,
+    ):
         if not _baseclass:
             return super().__new__(cls, *args, **kwargs)
         if mode in MonteCarloModes1:
@@ -149,7 +184,9 @@ class MonteCarlo1(MonteCarlo):
         **kwargs,
     ):
         if mode not in MonteCarloModes1:
-            raise RuntimeError(f"Invalid MonteCarlo mode {mode}. Expect: {MonteCarloModes1}")
+            raise RuntimeError(
+                f"Invalid MonteCarlo mode {mode}. Expect: {MonteCarloModes1}"
+            )
 
         self._mode = mode
         self._generator = generator
@@ -226,7 +263,9 @@ class MonteCarlo2(MonteCarlo):
         **kwargs,
     ):
         if mode not in MonteCarloModes2:
-            raise RuntimeError(f"Invalid montecarlo mode {mode}. Expect: {MonteCarloModes2}")
+            raise RuntimeError(
+                f"Invalid montecarlo mode {mode}. Expect: {MonteCarloModes2}"
+            )
 
         self._mode = mode
         self._generator = generator
@@ -260,13 +299,23 @@ class MonteCarlo2(MonteCarlo):
     def _fcn_covariance_L(self) -> None:
         i = 0
         while i < self.inputs.len_pos():
-            _covariance_L(self.inputs[i].data, self.inputs[i + 1].data, self.outputs[i // 2].data, self._generator)
+            _covariance_L(
+                self.inputs[i].data,
+                self.inputs[i + 1].data,
+                self.outputs[i // 2].data,
+                self._generator,
+            )
             i += 2
 
     def _fcn_normal(self) -> None:
         i = 0
         while i < self.inputs.len_pos():
-            _normal(self.inputs[i].data, self.inputs[i + 1].data, self.outputs[i // 2].data, self._generator)
+            _normal(
+                self.inputs[i].data,
+                self.inputs[i + 1].data,
+                self.outputs[i // 2].data,
+                self._generator,
+            )
             i += 2
 
     def _typefunc(self) -> None:
