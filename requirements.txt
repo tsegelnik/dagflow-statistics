@@ -1,16 +1,6 @@
-contextlib2
 coverage
-latexdatax
-matplotlib
+iminuit
 numba
-numpy
-orderedset
-pandas
-pygraphviz
 pytest
 pytest-cov
-pyyaml
-schema
 scipy
-tabulate
-iminuit
