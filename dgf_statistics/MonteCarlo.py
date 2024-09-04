@@ -21,13 +21,13 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
 
 MonteCarloModes = {"asimov", "normal", "normalstats", "poisson", "covariance"}
-ModeType = Literal[MonteCarloModes]
+ModeType = Literal["asimov", "normal", "normalstats", "poisson", "covariance"]
 
 MonteCarloModes1 = {"asimov", "normalstats", "poisson"}
-ModeType1 = Literal[MonteCarloModes1]
+ModeType1 = Literal["asimov", "normalstats", "poisson"]
 
 MonteCarloModes2 = {"normal", "covariance"}
-ModeType2 = Literal[MonteCarloModes2]
+ModeType2 = Literal["normal", "covariance"]
 
 
 def _covariance_L(
