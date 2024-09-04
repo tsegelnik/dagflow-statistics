@@ -157,10 +157,8 @@ class MonteCarlo(BlockToOneNode):
 
     @staticmethod
     def _create_generator() -> Generator:
-        from numpy.random import SeedSequence, MT19937
-        seed_sequence = SeedSequence(0)
-        seed = seed_sequence.spawn(1)[0]
-        algo = MT19937(seed=seed)
+        from numpy.random import MT19937
+        algo = MT19937(seed=0)
         return Generator(algo)
 
 
