@@ -21,13 +21,13 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
 
 MonteCarloModes = {"asimov", "normal", "normalstats", "poisson", "covariance"}
-ModeType = Literal[MonteCarloModes]
+ModeType = Literal["asimov", "normal", "normalstats", "poisson", "covariance"]
 
 MonteCarloModes1 = {"asimov", "normalstats", "poisson"}
-ModeType1 = Literal[MonteCarloModes1]
+ModeType1 = Literal["asimov", "normalstats", "poisson"]
 
 MonteCarloModes2 = {"normal", "covariance"}
-ModeType2 = Literal[MonteCarloModes2]
+ModeType2 = Literal["normal", "covariance"]
 
 
 def _covariance_L(
@@ -137,9 +137,9 @@ class MonteCarlo(BlockToOneNode):
         if not _baseclass:
             return super().__new__(cls, *args, **kwargs)
         if mode in MonteCarloModes1:
-            return MonteCarlo1(name, mode, generator, *args, _baseclass=False, **kwargs)
+            return MonteCarlo1(name, mode, generator, *args, _baseclass=False, **kwargs) # pyright: ignore [reportArgumentType]
         elif mode in MonteCarloModes2:
-            return MonteCarlo2(name, mode, generator, *args, _baseclass=False, **kwargs)
+            return MonteCarlo2(name, mode, generator, *args, _baseclass=False, **kwargs) # pyright: ignore [reportArgumentType]
 
         raise RuntimeError(f"Invalid montecarlo mode {mode}. Expect: {MonteCarloModes}")
 
