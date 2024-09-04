@@ -154,6 +154,14 @@ class MonteCarlo(BlockToOneNode):
         self.unfreeze()
         self.taint(force_computation=True)
 
+    @staticmethod
+    def _create_generator() -> Generator:
+        from numpy.random import SeedSequence, MT19937
+        seed_sequence = SeedSequence(0)
+        seed = seed_sequence.spawn(1)[0]
+        algo = MT19937(seed=seed)
+        return Generator(algo)
+
 
 class MonteCarlo1(MonteCarlo):
     r"""
@@ -178,7 +186,7 @@ class MonteCarlo1(MonteCarlo):
         self,
         name,
         mode: ModeType1,
-        generator: Generator,
+        generator: Generator = None,
         *args,
         _baseclass: bool = True,
         **kwargs,
@@ -189,7 +197,7 @@ class MonteCarlo1(MonteCarlo):
             )
 
         self._mode = mode
-        self._generator = generator
+        self._generator = self._create_generator() if generator is None else generator
         super().__init__(name, *args, **kwargs)
         # TODO: set lables
 
@@ -257,7 +265,7 @@ class MonteCarlo2(MonteCarlo):
         self,
         name,
         mode: ModeType2,
-        generator: Generator,
+        generator: Generator = None,
         *args,
         _baseclass: bool = True,
         **kwargs,
@@ -268,7 +276,7 @@ class MonteCarlo2(MonteCarlo):
             )
 
         self._mode = mode
-        self._generator = generator
+        self._generator = self._create_generator() if generator is None else generator
         super().__init__(name, *args, **kwargs)
         # TODO: set lables
         self.labels.setdefaults(

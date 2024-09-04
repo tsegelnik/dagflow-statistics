@@ -12,6 +12,7 @@ from dagflow.graphviz import savegraph
 from dagflow.lib import Array
 from dagflow.plot import add_colorbar, closefig, plot_array_1d, plot_auto, savefig
 
+
 @mark.parametrize("scale", [0.1, 100.0, 10000.0])
 @mark.parametrize(
     "mcmode",
@@ -47,7 +48,7 @@ def test_mc(mcmode, scale, datanum, debug_graph, testname, tmp_path):
 
         toymc = MonteCarlo(name="MonteCarlo", mode=mcmode, generator=generator)
         for mcdata in mcdata_v:
-            mcdata.inputs >> toymc
+            mcdata.outputs >> toymc
     assert not toymc.frozen
 
     list(
@@ -68,6 +69,33 @@ def test_mc(mcmode, scale, datanum, debug_graph, testname, tmp_path):
 
     plot_auto(toymc.outputs[0], save=f"output/{testname}_plot.png")
     savegraph(graph, f"output/{testname}.png")
+
+
+@mark.parametrize("mcmode", ["asimov", "poisson", "normalstats", "normal", "covariance",])
+def test_empty_generator(mcmode, debug_graph):
+    size = 20
+    scale = 1000
+    data = (size + arange(size, dtype="d")) * scale
+    inV = scale * eye(size) + size
+    L = cholesky(inV)
+
+    with Graph(close_on_exit=True, debug=debug_graph) as graph:
+        mcdata = Array("data", data)
+        mc_error = Array("error", L if mcmode == "covariance" else diag(L))
+
+        toymc0 = MonteCarlo(name="MonteCarlo", mode=mcmode)
+        toymc1 = MonteCarlo(name="MonteCarlo", mode=mcmode)
+        if mcmode in ("normal", "covariance"):
+            (mcdata, mc_error) >> toymc0
+            (mcdata, mc_error) >> toymc1
+        else:
+            mcdata >> toymc0
+            mcdata >> toymc1
+
+    for toymc in (toymc0, toymc1):
+        toymc.next_sample()
+
+    assert (toymc0.outputs[0].data == toymc1.outputs[0].data).all()
 
 
 class MCTestData:
@@ -101,16 +129,16 @@ class MCTestData:
             self.prepare_corrmatrix()
             self.prepare_covmatrix_syst()
             self.prepare_covmatrix_full()
-        self.prepare_inputs()
+        self.prepare_outputs()
 
-    def prepare_inputs(self):
+    def prepare_outputs(self):
         if self.mctype == "normal":
-            self.input_err = Array("errors", self.err_stat)
-            self.inputs = (self.hist, self.input_err)
+            self.output_err = Array("errors", self.err_stat)
+            self.outputs = (self.hist, self.output_err)
         elif self.mctype == "covariance":
-            self.inputs = (self.hist, self.input_L)
+            self.outputs = (self.hist, self.output_L)
         else:
-            self.inputs = (self.hist,)
+            self.outputs = (self.hist,)
 
     def prepare_corrmatrix(self):
         self.corrmat = eye(self.data.size, dtype="d")
@@ -130,7 +158,7 @@ class MCTestData:
         self.covmat_full = diag(self.err_stat2) + self.covmat_syst
         self.covmat_L = cholesky(self.covmat_full)
         self.covmat_L_inv = inv(self.covmat_L)
-        self.input_L = Array("L", self.covmat_L)
+        self.output_L = Array("L", self.covmat_L)
 
     def set_mc(self, mcobject, mcoutput):
         self.mcobject = mcobject
