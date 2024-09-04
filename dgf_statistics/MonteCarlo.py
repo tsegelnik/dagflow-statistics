@@ -130,7 +130,7 @@ class MonteCarlo(BlockToOneNode):
         name,
         mode: ModeType,
         *args,
-        generator: Generator = None,
+        generator: Generator | None = None,
         _baseclass: bool = True,
         **kwargs,
     ):
@@ -143,7 +143,7 @@ class MonteCarlo(BlockToOneNode):
 
         raise RuntimeError(f"Invalid montecarlo mode {mode}. Expect: {MonteCarloModes}")
 
-    def __init__(self, *args, generator=None, **kwargs):
+    def __init__(self, *args, generator: Generator | None = None, **kwargs):
         self._generator = self._create_generator() if generator is None else generator
         super().__init__(*args, auto_freeze=True, **kwargs)
 
@@ -185,7 +185,7 @@ class MonteCarlo1(MonteCarlo):
         self,
         name,
         mode: ModeType1,
-        generator: Generator = None,
+        generator: Generator | None = None,
         *args,
         _baseclass: bool = True,
         **kwargs,
@@ -263,7 +263,7 @@ class MonteCarlo2(MonteCarlo):
         self,
         name,
         mode: ModeType2,
-        generator: Generator = None,
+        generator: Generator | None = None,
         *args,
         _baseclass: bool = True,
         **kwargs,
