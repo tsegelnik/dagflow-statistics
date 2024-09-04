@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from dagflow.inputhandler import MissingInputAddOne
 from dagflow.node import Node
 from dagflow.typefunctions import check_inputs_multiplicity, check_inputs_same_shape
-from numba import float64, njit, void
+from numba import njit
 
 if TYPE_CHECKING:
     from dagflow.input import Input
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
 
 
-@njit(void(float64[:], float64[:], float64[:]), cache=True)
+@njit(cache=True)
 def _poisson_main(
     theory: NDArray[double],
     data: NDArray[double],
