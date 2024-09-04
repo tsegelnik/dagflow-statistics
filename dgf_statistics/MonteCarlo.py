@@ -129,21 +129,22 @@ class MonteCarlo(BlockToOneNode):
         cls,
         name,
         mode: ModeType,
-        generator: Generator,
         *args,
+        generator: Generator | None = None,
         _baseclass: bool = True,
         **kwargs,
     ):
         if not _baseclass:
             return super().__new__(cls, *args, **kwargs)
         if mode in MonteCarloModes1:
-            return MonteCarlo1(name, mode, generator, *args, _baseclass=False, **kwargs) # pyright: ignore [reportArgumentType]
+            return MonteCarlo1(name, mode, *args, generator=generator, _baseclass=False, **kwargs)
         elif mode in MonteCarloModes2:
-            return MonteCarlo2(name, mode, generator, *args, _baseclass=False, **kwargs) # pyright: ignore [reportArgumentType]
+            return MonteCarlo2(name, mode, *args, generator=generator, _baseclass=False, **kwargs)
 
         raise RuntimeError(f"Invalid montecarlo mode {mode}. Expect: {MonteCarloModes}")
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, generator: Generator = None, **kwargs):
+        self._generator = self._create_generator() if generator is None else generator
         super().__init__(*args, auto_freeze=True, **kwargs)
 
     @property
@@ -153,6 +154,12 @@ class MonteCarlo(BlockToOneNode):
     def next_sample(self) -> None:
         self.unfreeze()
         self.taint(force_computation=True)
+
+    @staticmethod
+    def _create_generator() -> Generator:
+        from numpy.random import MT19937, Generator
+        algo = MT19937(seed=0)
+        return Generator(algo)
 
 
 class MonteCarlo1(MonteCarlo):
@@ -178,8 +185,8 @@ class MonteCarlo1(MonteCarlo):
         self,
         name,
         mode: ModeType1,
-        generator: Generator,
         *args,
+        generator: Generator | None = None,
         _baseclass: bool = True,
         **kwargs,
     ):
@@ -189,8 +196,7 @@ class MonteCarlo1(MonteCarlo):
             )
 
         self._mode = mode
-        self._generator = generator
-        super().__init__(name, *args, **kwargs)
+        super().__init__(name, *args, generator=generator, **kwargs)
         # TODO: set lables
 
         self.labels.setdefaults(
@@ -257,8 +263,8 @@ class MonteCarlo2(MonteCarlo):
         self,
         name,
         mode: ModeType2,
-        generator: Generator,
         *args,
+        generator: Generator | None = None,
         _baseclass: bool = True,
         **kwargs,
     ):
@@ -268,8 +274,7 @@ class MonteCarlo2(MonteCarlo):
             )
 
         self._mode = mode
-        self._generator = generator
-        super().__init__(name, *args, **kwargs)
+        super().__init__(name, *args, generator=generator, **kwargs)
         # TODO: set lables
         self.labels.setdefaults(
             {
