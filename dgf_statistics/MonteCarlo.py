@@ -129,21 +129,22 @@ class MonteCarlo(BlockToOneNode):
         cls,
         name,
         mode: ModeType,
-        generator: Generator,
         *args,
+        generator: Generator = None,
         _baseclass: bool = True,
         **kwargs,
     ):
         if not _baseclass:
             return super().__new__(cls, *args, **kwargs)
         if mode in MonteCarloModes1:
-            return MonteCarlo1(name, mode, generator, *args, _baseclass=False, **kwargs)
+            return MonteCarlo1(name, mode, *args, generator=generator, _baseclass=False, **kwargs)
         elif mode in MonteCarloModes2:
-            return MonteCarlo2(name, mode, generator, *args, _baseclass=False, **kwargs)
+            return MonteCarlo2(name, mode, *args, generator=generator, _baseclass=False, **kwargs)
 
         raise RuntimeError(f"Invalid montecarlo mode {mode}. Expect: {MonteCarloModes}")
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, generator=None, **kwargs):
+        self._generator = self._create_generator() if generator is None else generator
         super().__init__(*args, auto_freeze=True, **kwargs)
 
     @property
@@ -197,8 +198,7 @@ class MonteCarlo1(MonteCarlo):
             )
 
         self._mode = mode
-        self._generator = self._create_generator() if generator is None else generator
-        super().__init__(name, *args, **kwargs)
+        super().__init__(name, *args, generator=generator, **kwargs)
         # TODO: set lables
 
         self.labels.setdefaults(
@@ -276,8 +276,7 @@ class MonteCarlo2(MonteCarlo):
             )
 
         self._mode = mode
-        self._generator = self._create_generator() if generator is None else generator
-        super().__init__(name, *args, **kwargs)
+        super().__init__(name, *args, generator=generator, **kwargs)
         # TODO: set lables
         self.labels.setdefaults(
             {
