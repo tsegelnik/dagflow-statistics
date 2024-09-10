@@ -3,16 +3,18 @@ from __future__ import annotations
 from math import lgamma, log
 from typing import TYPE_CHECKING, Literal
 
+from numba import njit
+
 from dagflow.exception import InitializationError
 from dagflow.inputhandler import MissingInputAddOne
 from dagflow.node import Node
-from numba import njit
 
 if TYPE_CHECKING:
-    from dagflow.input import Input
-    from dagflow.output import Output
     from numpy import double
     from numpy.typing import NDArray
+
+    from dagflow.input import Input
+    from dagflow.output import Output
 
 
 LogPoissonModes = {"poisson", "poisson_ratio"}
@@ -20,18 +22,26 @@ ModeType = Literal[LogPoissonModes]
 
 
 @njit(cache=True)
-def _const_poisson_ratio(data: NDArray[double], const: NDArray[double]):
+def _const_poisson_ratio_add(data: NDArray[double], const: NDArray[double]):
     r"""$\sum \log(theory_i) \approx \sum (theory_i * \log(theory_i) - theory_i)$"""
-    func = lambda x: x * log(x) - x if x not in {0.0, 1.0} else 0
-    for i in range(len(data)):
-        const[0] += func(data[i])
+    sm = 0.0
+    for x in data:
+        if x == 0.0 or x == 1.0:
+            continue
+
+        sm += x * log(x) - x
+
+    const[0] += sm
 
 
 @njit(cache=True)
-def _const_poisson(data: NDArray[double], const: NDArray[double]):
+def _const_poisson_add(data: NDArray[double], const: NDArray[double]):
     r"""$\sum \log(theory_i) = \sum \log(\Gamma(theory_i + 1))$"""
+    sm = 0.0
     for i in range(len(data)):
-        const[0] += lgamma(data[i] + 1)
+        sm += lgamma(data[i] + 1.0)
+
+    const[0] += sm
 
 
 class LogPoissonConst(Node):
@@ -77,21 +87,25 @@ class LogPoissonConst(Node):
         self._mode = mode
         self._data = self._add_input("data")  # input: 0
         self._const = self._add_output("const")  # output: 0
-        self._functions.update({"poisson_ratio": self._fcn_poisson_ratio, "poisson": self._fcn_poisson})
+        self._functions.update(
+            {"poisson_ratio": self._fcn_poisson_ratio, "poisson": self._fcn_poisson}
+        )
 
     @property
     def mode(self) -> ModeType:
         return self._mode
 
     def _fcn_poisson_ratio(self):
-        self._const.data[0] = 0.0
+        data = self._const.data
+        data[0] = 0.0
         for _input in self.inputs.iter_data():
-            _const_poisson_ratio(_input.ravel(), self._const.data)
+            _const_poisson_ratio_add(_input.ravel(), data)
 
     def _fcn_poisson(self):
-        self._const.data[0] = 0.0
+        data = self._const.data
+        data[0] = 0.0
         for _input in self.inputs.iter_data():
-            _const_poisson(_input.ravel(), self._const.data)
+            _const_poisson_add(_input.ravel(), data)
 
     def _typefunc(self) -> None:
         """A output takes this function to determine the dtype and shape"""
