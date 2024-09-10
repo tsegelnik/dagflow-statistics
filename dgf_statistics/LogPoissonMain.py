@@ -3,28 +3,33 @@ from __future__ import annotations
 from math import log
 from typing import TYPE_CHECKING
 
+from numba import njit
+
 from dagflow.inputhandler import MissingInputAddOne
 from dagflow.node import Node
 from dagflow.typefunctions import check_inputs_multiplicity, check_inputs_same_shape
-from numba import njit
 
 if TYPE_CHECKING:
-    from dagflow.input import Input
-    from dagflow.output import Output
     from numpy import double
     from numpy.typing import NDArray
 
+    from dagflow.input import Input
+    from dagflow.output import Output
+
 
 @njit(cache=True)
-def _poisson_main(
+def _poisson_main_add(
     theory: NDArray[double],
     data: NDArray[double],
     poisson: NDArray[double],
 ) -> None:
     r"""$\sum (theory_i - data_i * log(theory_i))$"""
-    func = lambda x, y: x - log(x) * y
+    sm = 0.0
     for i in range(len(theory)):
-        poisson[0] += func(theory[i], data[i])
+        t = theory[i]
+        sm += t - log(t) * data[i]
+
+    poisson[0] += sm
 
 
 class LogPoissonMain(Node):
@@ -70,16 +75,17 @@ class LogPoissonMain(Node):
         self._poisson = self._add_output("poisson")  # output: 0
 
     def _fcn(self):
-        self._poisson.data[0] = 0.0
+        data = self._poisson.data
+        data[0] = 0.0
         i = 0
         while i < self.inputs.len_pos():
-            _poisson_main(
+            _poisson_main_add(
                 self.inputs[i].data.ravel(),
                 self.inputs[i + 1].data.ravel(),
-                self._poisson.data,
+                data,
             )
             i += 2
-        self._poisson.data[0] = 2.0 * (self._poisson.data[0] + self._const.data[0])  # fmt:skip
+        data[0] = 2.0 * (data[0] + self._const.data[0])  # fmt:skip
 
     def _typefunc(self) -> None:
         """A output takes this function to determine the dtype and shape"""

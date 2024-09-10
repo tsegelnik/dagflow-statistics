@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from numba import njit
+from numpy import empty, square, subtract
+from scipy.linalg import solve_triangular
+
 from dagflow.exception import TypeFunctionError
 from dagflow.lib import ManyToOneNode
 from dagflow.typefunctions import (
@@ -11,18 +15,16 @@ from dagflow.typefunctions import (
     check_inputs_multiplicity,
     check_inputs_same_shape,
 )
-from numba import njit
-from numpy import empty, square, subtract
-from scipy.linalg import solve_triangular
 
 if TYPE_CHECKING:
-    from dagflow.node import Input, Output
     from numpy import double
     from numpy.typing import NDArray
 
+    from dagflow.node import Input, Output
+
 
 @njit(cache=True)
-def _chi2_1d(
+def _chi2_1d_add(
     data: NDArray[double],
     theory: NDArray[double],
     errors: NDArray[double],
@@ -30,7 +32,8 @@ def _chi2_1d(
 ) -> None:
     res = 0.0
     for idata, itheory, ierror in zip(data, theory, errors):
-        res += ((itheory - idata) / ierror) ** 2
+        diff = (itheory - idata) / ierror
+        res += diff * diff
     result[0] += res
 
 
@@ -96,16 +99,22 @@ class Chi2(ManyToOneNode):
         ret = self._result.data
         ret[0] = 0.0
 
-        for theory, data, errors in zip(self._theory_tuple, self._data_tuple, self._errors_tuple):
-            _chi2_1d(theory.data, data.data, errors.data, ret)
+        for theory, data, errors in zip(
+            self._theory_tuple, self._data_tuple, self._errors_tuple
+        ):
+            _chi2_1d_add(theory.data, data.data, errors.data, ret)
 
     def _fcn_2d(self) -> None:
         buffer = self._buffer
         ret = 0.0
-        for theory, data, errors in zip(self._theory_tuple, self._data_tuple, self._errors_tuple):
+        for theory, data, errors in zip(
+            self._theory_tuple, self._data_tuple, self._errors_tuple
+        ):
             # errors is triangular decomposition of covariance matrix (L)
             subtract(theory.data, data.data, out=buffer)
-            solve_triangular(errors.data, buffer, lower=self.matrix_is_lower, overwrite_b=True)
+            solve_triangular(
+                errors.data, buffer, lower=self.matrix_is_lower, overwrite_b=True
+            )
             square(buffer, out=buffer)
             ret += buffer.sum()
 
