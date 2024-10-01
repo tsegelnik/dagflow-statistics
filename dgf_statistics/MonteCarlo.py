@@ -153,7 +153,7 @@ class MonteCarlo(BlockToOneNode):
 
     def next_sample(self) -> None:
         self.unfreeze()
-        self.taint(force_computation=True)
+        self.touch(force_computation=True)
 
     @staticmethod
     def _create_generator() -> Generator:
