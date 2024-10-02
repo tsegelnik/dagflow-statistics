@@ -118,7 +118,7 @@ class MonteCarlo(BlockToOneNode):
             * `asimov`: store input data without fluctuations
             * `normal`: normal distribution without correlations (2 inputs)
             * `normal-stats`: normal distribution without correlations (1 input)
-            * `normal-unit`: normal distribution without correlations (0 inputs)
+            * `normal-unit`: normal distribution without correlations (1 input, using for shape)
             * `poisson`: uses Poisson distribution
             * `covariance`: multivariate normal distribution using L-decomposition of the covariance matrix
     """
@@ -149,7 +149,7 @@ class MonteCarlo(BlockToOneNode):
         elif mode in MonteCarloShapeModes:
             return MonteCarloShape(name, mode, *args, generator=generator, _baseclass=False, **kwargs)
 
-        raise RuntimeError(f"Invalid montecarlo mode {mode}. Expect: {MonteCarloModes}")
+        raise RuntimeError(f"Invalid MonteCarlo mode {mode}. Expect: {MonteCarloModes}")
 
     def __init__(self, *args, generator: Generator = None, **kwargs):
         self._generator = self._create_generator() if generator is None else generator
@@ -194,7 +194,7 @@ class MonteCarloShape(MonteCarlo):
 
     extra arguments:
         `mode`:
-            * `normal-unit`: normal distribution without correlations (0 inputs)
+            * `normal-unit`: normal distribution without correlations (1 input, using for shape)
     """
 
     __slots__ = ()
@@ -215,7 +215,7 @@ class MonteCarloShape(MonteCarlo):
 
         self._mode = mode
         super().__init__(name, *args, generator=generator, **kwargs)
-        # TODO: set lables
+        # TODO: set labels
 
         self.labels.setdefaults(
             {
@@ -241,7 +241,7 @@ class MonteCarloShape(MonteCarlo):
             _output[:] = 0.
 
     def _fcn_normal_unit(self) -> None:
-        for _input, _output in zip(self.inputs.iter_data(), self.outputs.iter_data()):
+        for _output in self.outputs.iter_data():
             _fill_normal(_output, self._generator)
 
     def _typefunc(self) -> None:
@@ -289,7 +289,7 @@ class MonteCarloLoc(MonteCarlo):
 
         self._mode = mode
         super().__init__(name, *args, generator=generator, **kwargs)
-        # TODO: set lables
+        # TODO: set labels
 
         self.labels.setdefaults(
             {
@@ -367,7 +367,8 @@ class MonteCarloLocScale(MonteCarlo):
 
         self._mode = mode
         super().__init__(name, *args, generator=generator, **kwargs)
-        # TODO: set lables
+        # TODO: set labels
+
         self.labels.setdefaults(
             {
                 "mark": f"MC:{mode[0].upper()}",

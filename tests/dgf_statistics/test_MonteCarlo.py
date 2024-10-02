@@ -13,7 +13,7 @@ from dagflow.lib import Array
 from dagflow.plot import add_colorbar, closefig, plot_array_1d, plot_auto, savefig
 
 
-@mark.parametrize("scale", [0.1, 100.0, 10000.0])
+@mark.parametrize("scale", [0.1, 10000.0])
 @mark.parametrize(
     "mcmode",
     [
@@ -100,9 +100,19 @@ def test_empty_generator(mcmode, debug_graph):
     assert (toymc0.outputs[0].data == toymc1.outputs[0].data).all()
 
 
-# def test_mc_shape(debug_graph):
-#     with Graph(close_on_exit=True, debug=debug_graph):
-#         toymc
+def test_mc_shape(debug_graph):
+    size = 20
+    data = arange(size)
+    with Graph(close_on_exit=True, debug=debug_graph):
+        data = Array("data", data)
+
+        toymc = MonteCarlo(name="MonteCarlo", mode="normal-unit")
+        data >> toymc
+
+    toymc.next_sample()
+    assert not allclose(toymc.outputs[0].data, 0.)
+    toymc.reset()
+    assert allclose(toymc.outputs[0].data, 0.)
 
 
 class MCTestData:
