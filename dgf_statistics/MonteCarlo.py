@@ -166,7 +166,7 @@ class MonteCarlo(BlockToOneNode):
 
     @abstractmethod
     def _fcn_asimov(self) -> None:
-        pass
+        raise NotImplementedError()
 
     def next_sample(self) -> None:
         self.unfreeze()
@@ -228,7 +228,7 @@ class MonteCarloShape(MonteCarlo):
         )
         self._functions.update(
             {
-                "normal-unit": self._fcn_normal_unit_distribution,
+                "normal-unit": self._fcn_normal_unit,
             }
         )
 
@@ -237,10 +237,10 @@ class MonteCarloShape(MonteCarlo):
         return ("data",)
 
     def _fcn_asimov(self) -> None:
-        for _input, _output in zip(self.inputs.iter_data(), self.outputs.iter_data()):
-            _output[:] = _input[:]
+        for _output in self.outputs.iter_data():
+            _output[:] = 0.
 
-    def _fcn_normal_unit_distribution(self) -> None:
+    def _fcn_normal_unit(self) -> None:
         for _input, _output in zip(self.inputs.iter_data(), self.outputs.iter_data()):
             _fill_normal(_output, self._generator)
 

@@ -87,8 +87,6 @@ def test_empty_generator(mcmode, debug_graph):
 
         toymc0 = MonteCarlo(name="MonteCarlo", mode=mcmode)
         toymc1 = MonteCarlo(name="MonteCarlo", mode=mcmode)
-        from dgf_statistics.MonteCarlo import MonteCarloLoc
-        MonteCarloLoc()
         if mcmode in ("normal", "covariance"):
             (mcdata, mc_error) >> toymc0
             (mcdata, mc_error) >> toymc1
