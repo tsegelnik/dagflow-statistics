@@ -19,7 +19,7 @@ from dagflow.plot import add_colorbar, closefig, plot_array_1d, plot_auto, savef
     [
         "asimov",
         "poisson",
-        "normalstats",
+        "normal-stats",
         "normal",
         "covariance",
     ],
@@ -66,12 +66,14 @@ def test_mc(mcmode, scale, datanum, debug_graph, testname, tmp_path):
 
     list(map(MCTestData.check_nextSample, mcdata_v))
     list(map(MCTestData.check_stats, mcdata_v))
+    toymc.reset()
+    list(map(MCTestData.check_reset, mcdata_v))
 
     plot_auto(toymc.outputs[0], save=f"output/{testname}_plot.png")
     savegraph(graph, f"output/{testname}.png")
 
 
-@mark.parametrize("mcmode", ["asimov", "poisson", "normalstats", "normal", "covariance",])
+@mark.parametrize("mcmode", ["asimov", "poisson", "normal-stats", "normal", "covariance", "normal-unit"])
 def test_empty_generator(mcmode, debug_graph):
     size = 20
     scale = 1000
@@ -85,6 +87,8 @@ def test_empty_generator(mcmode, debug_graph):
 
         toymc0 = MonteCarlo(name="MonteCarlo", mode=mcmode)
         toymc1 = MonteCarlo(name="MonteCarlo", mode=mcmode)
+        from dgf_statistics.MonteCarlo import MonteCarloLoc
+        MonteCarloLoc()
         if mcmode in ("normal", "covariance"):
             (mcdata, mc_error) >> toymc0
             (mcdata, mc_error) >> toymc1
@@ -96,6 +100,11 @@ def test_empty_generator(mcmode, debug_graph):
         toymc.next_sample()
 
     assert (toymc0.outputs[0].data == toymc1.outputs[0].data).all()
+
+
+# def test_mc_shape(debug_graph):
+#     with Graph(close_on_exit=True, debug=debug_graph):
+#         toymc
 
 
 class MCTestData:
@@ -255,6 +264,9 @@ class MCTestData:
         self.matshow(self.covmat_syst, "Covariance matrix (syst)", "covmat_syst")
         self.matshow(self.covmat_full, "Covariance matrix (full)", "covmat_full")
         self.matshow(self.covmat_L, "Covariance matrix decomposed: L", "covmat_L")
+
+    def check_reset(self):
+        assert(self.data - self.mcdata == 0.0).all()
 
     def check_stats(self):
         if self.mctype == "asimov":
