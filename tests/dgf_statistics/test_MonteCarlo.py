@@ -73,7 +73,7 @@ def test_mc(mcmode, scale, datanum, debug_graph, testname, tmp_path):
     savegraph(graph, f"output/{testname}.png")
 
 
-@mark.parametrize("mcmode", ["asimov", "poisson", "normal-stats", "normal", "covariance", "normal-unit"])
+@mark.parametrize("mcmode", ["asimov", "poisson", "normal-stats", "normal", "covariance"])
 def test_empty_generator(mcmode, debug_graph):
     size = 20
     scale = 1000
@@ -100,15 +100,17 @@ def test_empty_generator(mcmode, debug_graph):
     assert (toymc0.outputs[0].data == toymc1.outputs[0].data).all()
 
 
-def test_mc_shape(debug_graph):
-    size = 20
-    data = arange(size)
+@mark.parametrize("shape,dtype", [((1,), "d"), ((1, 20), "f"), ((20,), "d")])
+def test_mc_shape(shape, dtype, debug_graph):
     with Graph(close_on_exit=True, debug=debug_graph):
-        data = Array("data", data)
+        toymc = MonteCarlo(
+            name="MonteCarlo",
+            shape=shape,
+            dtype=dtype,
+            mode="normal-unit",
+        )
 
-        toymc = MonteCarlo(name="MonteCarlo", mode="normal-unit")
-        data >> toymc
-
+    assert toymc.outputs[0].data.shape == shape
     toymc.next_sample()
     assert not allclose(toymc.outputs[0].data, 0.)
     toymc.reset()

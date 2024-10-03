@@ -136,6 +136,8 @@ class MonteCarlo(BlockToOneNode):
         name: str,
         mode: Literal["asimov", "normal", "normal-stats", "normal-unit", "poisson", "covariance"],
         *args,
+        dtype: Literal["d", "f"] = "d",
+        shape: tuple[int, ...] = (),
         generator: Generator | None = None,
         _baseclass: bool = True,
         **kwargs,
@@ -143,11 +145,17 @@ class MonteCarlo(BlockToOneNode):
         if not _baseclass:
             return super().__new__(cls, *args, **kwargs)
         if mode in MonteCarloLocModes:
-            return MonteCarloLoc(name, mode, *args, generator=generator, _baseclass=False, **kwargs)
+            return MonteCarloLoc(
+                name, mode, *args, generator=generator, _baseclass=False, **kwargs,
+            )
         elif mode in MonteCarloLocScaleModes:
-            return MonteCarloLocScale(name, mode, *args, generator=generator, _baseclass=False, **kwargs)
+            return MonteCarloLocScale(
+                name, mode, *args, generator=generator, _baseclass=False, **kwargs,
+            )
         elif mode in MonteCarloShapeModes:
-            return MonteCarloShape(name, mode, *args, generator=generator, _baseclass=False, **kwargs)
+            return MonteCarloShape(
+                name, mode, *args, dtype=dtype, shape=shape, generator=generator, _baseclass=False, **kwargs,
+            )
 
         raise RuntimeError(f"Invalid MonteCarlo mode {mode}. Expect: {MonteCarloModes}")
 
@@ -156,6 +164,7 @@ class MonteCarlo(BlockToOneNode):
             name: str,
             mode: Literal["asimov", "normal", "normal-stats", "normal-unit", "poisson", "covariance"],
             *args,
+            shape: tuple[int, ...] = (),
             generator: Generator = None,
             **kwargs
         ):
@@ -204,13 +213,13 @@ class MonteCarloShape(MonteCarlo):
             * `normal-unit`: normal distribution without correlations (1 input, using for shape)
     """
 
-    __slots__ = ()
-
     def __init__(
         self,
         name: str,
         mode: Literal["normal-unit"],
         *args,
+        dtype: Literal["d", "f"] = "d",
+        shape: tuple[int, ...] = (),
         generator: Generator = None,
         _baseclass: bool = True,
         **kwargs,
@@ -222,6 +231,7 @@ class MonteCarloShape(MonteCarlo):
 
         self._mode = mode
         super().__init__(name, mode, *args, generator=generator, **kwargs)
+        self._add_output("result", shape=shape, dtype=dtype)
         # TODO: set labels
 
         self.labels.setdefaults(
@@ -240,8 +250,8 @@ class MonteCarloShape(MonteCarlo):
         )
 
     @staticmethod
-    def _input_names() -> tuple[str, ...]:
-        return ("data",)
+    def _input_names() -> tuple:
+        return ()
 
     def _fcn_asimov(self) -> None:
         for _output in self.outputs.iter_data():
@@ -253,11 +263,6 @@ class MonteCarloShape(MonteCarlo):
 
     def _typefunc(self) -> None:
         """A output takes this function to determine the dtype and shape"""
-        n = self.inputs.len_pos()
-        check_outputs_number(self, n)
-        for i in range(n):
-            copy_from_input_to_output(self, i, i)
-
         self.fcn = self._functions[self.mode]
 
 
@@ -277,8 +282,6 @@ class MonteCarloLoc(MonteCarlo):
             * `normal-stats`: normal distribution without correlations (1 input)
             * `poisson`: uses Poisson distribution
     """
-
-    __slots__ = ()
 
     def __init__(
         self,
