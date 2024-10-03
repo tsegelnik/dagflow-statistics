@@ -164,6 +164,7 @@ class MonteCarlo(BlockToOneNode):
             name: str,
             mode: Literal["asimov", "normal", "normal-stats", "normal-unit", "poisson", "covariance"],
             *args,
+            dtype: Literal["d", "f"] = "d",
             shape: tuple[int, ...] = (),
             generator: Generator = None,
             **kwargs
