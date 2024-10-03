@@ -151,9 +151,16 @@ class MonteCarlo(BlockToOneNode):
 
         raise RuntimeError(f"Invalid MonteCarlo mode {mode}. Expect: {MonteCarloModes}")
 
-    def __init__(self, *args, generator: Generator = None, **kwargs):
+    def __init__(
+            self,
+            name: str,
+            mode: Literal["asimov", "normal", "normal-stats", "normal-unit", "poisson", "covariance"],
+            *args,
+            generator: Generator = None,
+            **kwargs
+        ):
         self._generator = self._create_generator() if generator is None else generator
-        super().__init__(*args, auto_freeze=True, **kwargs)
+        super().__init__(name, *args, auto_freeze=True, **kwargs)
         self._functions.update(
             {
                 "asimov": self._fcn_asimov,
@@ -214,7 +221,7 @@ class MonteCarloShape(MonteCarlo):
             )
 
         self._mode = mode
-        super().__init__(name, *args, generator=generator, **kwargs)
+        super().__init__(name, mode, *args, generator=generator, **kwargs)
         # TODO: set labels
 
         self.labels.setdefaults(
@@ -288,7 +295,7 @@ class MonteCarloLoc(MonteCarlo):
             )
 
         self._mode = mode
-        super().__init__(name, *args, generator=generator, **kwargs)
+        super().__init__(name, mode, *args, generator=generator, **kwargs)
         # TODO: set labels
 
         self.labels.setdefaults(
@@ -366,7 +373,7 @@ class MonteCarloLocScale(MonteCarlo):
             )
 
         self._mode = mode
-        super().__init__(name, *args, generator=generator, **kwargs)
+        super().__init__(name, mode, *args, generator=generator, **kwargs)
         # TODO: set labels
 
         self.labels.setdefaults(
