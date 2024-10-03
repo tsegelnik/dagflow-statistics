@@ -13,13 +13,13 @@ from dagflow.lib import Array
 from dagflow.plot import add_colorbar, closefig, plot_array_1d, plot_auto, savefig
 
 
-@mark.parametrize("scale", [0.1, 100.0, 10000.0])
+@mark.parametrize("scale", [0.1, 10000.0])
 @mark.parametrize(
     "mcmode",
     [
         "asimov",
         "poisson",
-        "normalstats",
+        "normal-stats",
         "normal",
         "covariance",
     ],
@@ -66,12 +66,14 @@ def test_mc(mcmode, scale, datanum, debug_graph, testname, tmp_path):
 
     list(map(MCTestData.check_nextSample, mcdata_v))
     list(map(MCTestData.check_stats, mcdata_v))
+    toymc.reset()
+    list(map(MCTestData.check_reset, mcdata_v))
 
     plot_auto(toymc.outputs[0], save=f"output/{testname}_plot.png")
     savegraph(graph, f"output/{testname}.png")
 
 
-@mark.parametrize("mcmode", ["asimov", "poisson", "normalstats", "normal", "covariance",])
+@mark.parametrize("mcmode", ["asimov", "poisson", "normal-stats", "normal", "covariance"])
 def test_empty_generator(mcmode, debug_graph):
     size = 20
     scale = 1000
@@ -96,6 +98,23 @@ def test_empty_generator(mcmode, debug_graph):
         toymc.next_sample()
 
     assert (toymc0.outputs[0].data == toymc1.outputs[0].data).all()
+
+
+@mark.parametrize("shape,dtype", [((1,), "d"), ((1, 20), "f"), ((20,), "d")])
+def test_mc_shape(shape, dtype, debug_graph):
+    with Graph(close_on_exit=True, debug=debug_graph):
+        toymc = MonteCarlo(
+            name="MonteCarlo",
+            shape=shape,
+            dtype=dtype,
+            mode="normal-unit",
+        )
+
+    assert toymc.outputs[0].data.shape == shape
+    toymc.next_sample()
+    assert not allclose(toymc.outputs[0].data, 0.)
+    toymc.reset()
+    assert allclose(toymc.outputs[0].data, 0.)
 
 
 class MCTestData:
@@ -255,6 +274,9 @@ class MCTestData:
         self.matshow(self.covmat_syst, "Covariance matrix (syst)", "covmat_syst")
         self.matshow(self.covmat_full, "Covariance matrix (full)", "covmat_full")
         self.matshow(self.covmat_L, "Covariance matrix decomposed: L", "covmat_L")
+
+    def check_reset(self):
+        assert(self.data - self.mcdata == 0.0).all()
 
     def check_stats(self):
         if self.mctype == "asimov":

@@ -56,7 +56,7 @@ class Shift(OneToOneNode):
 
 @mark.parametrize("mu", (-1.531654, 2.097123))
 @mark.parametrize("sigma", (0.567543, 1.503321))
-@mark.parametrize("mode", ("asimov", "normalstats"))
+@mark.parametrize("mode", ("asimov", "normal-stats"))
 def test_IMinuitMinimizer(mu, sigma, mode, testname):
     size = 201
     x = linspace(-10, 10, size)
@@ -134,7 +134,7 @@ def test_IMinuitMinimizer(mu, sigma, mode, testname):
     )
 
     atol = 2.0 / sqrt(_NevScale)
-    assert allclose(res["x"], [mu, sigma], rtol=0, atol=atol if mode == "normalstats" else 2e-5)
+    assert allclose(res["x"], [mu, sigma], rtol=0, atol=atol if mode == "normal-stats" else 2e-5)
     assert allclose(res["covariance"], minimizer.calculate_covariance(), rtol=0, atol=1e-8)
     assert all(res["errorsdict"][key] == res["errors"][i] for i, key in enumerate(names))
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import abstractmethod
 from typing import TYPE_CHECKING, Literal
 
 from numba import njit
@@ -20,14 +21,18 @@ if TYPE_CHECKING:
     from numpy.random import Generator
     from numpy.typing import NDArray
 
-MonteCarloModes = {"asimov", "normal", "normalstats", "poisson", "covariance"}
-ModeType = Literal["asimov", "normal", "normalstats", "poisson", "covariance"]
 
-MonteCarloModes1 = {"asimov", "normalstats", "poisson"}
-ModeType1 = Literal["asimov", "normalstats", "poisson"]
+MonteCarloLocModes = ("asimov", "normal-stats", "poisson")
 
-MonteCarloModes2 = {"normal", "covariance"}
-ModeType2 = Literal["normal", "covariance"]
+MonteCarloLocScaleModes = ("normal", "covariance")
+
+MonteCarloShapeModes = ("normal-unit",)
+
+MonteCarloModes = (
+    *MonteCarloLocModes,
+    *MonteCarloLocScaleModes,
+    *MonteCarloShapeModes,
+)
 
 
 def _covariance_L(
@@ -112,7 +117,8 @@ class MonteCarlo(BlockToOneNode):
         `mode`:
             * `asimov`: store input data without fluctuations
             * `normal`: normal distribution without correlations (2 inputs)
-            * `normalstats`: normal distribution without correlations (1 input)
+            * `normal-stats`: normal distribution without correlations (1 input)
+            * `normal-unit`: normal distribution without correlations (1 input, using for shape)
             * `poisson`: uses Poisson distribution
             * `covariance`: multivariate normal distribution using L-decomposition of the covariance matrix
     """
@@ -122,38 +128,69 @@ class MonteCarlo(BlockToOneNode):
         "_generator",
     )
 
-    _mode: ModeType
+    _mode: Literal["asimov", "normal", "normal-stats", "normal-unit", "poisson", "covariance"]
     _generator: Generator
 
     def __new__(
         cls,
-        name,
-        mode: ModeType,
+        name: str,
+        mode: Literal["asimov", "normal", "normal-stats", "normal-unit", "poisson", "covariance"],
         *args,
+        dtype: Literal["d", "f"] = "d",
+        shape: tuple[int, ...] = (),
         generator: Generator | None = None,
         _baseclass: bool = True,
         **kwargs,
     ):
         if not _baseclass:
             return super().__new__(cls, *args, **kwargs)
-        if mode in MonteCarloModes1:
-            return MonteCarlo1(name, mode, *args, generator=generator, _baseclass=False, **kwargs)
-        elif mode in MonteCarloModes2:
-            return MonteCarlo2(name, mode, *args, generator=generator, _baseclass=False, **kwargs)
+        if mode in MonteCarloLocModes:
+            return MonteCarloLoc(
+                name, mode, *args, generator=generator, _baseclass=False, **kwargs,
+            )
+        elif mode in MonteCarloLocScaleModes:
+            return MonteCarloLocScale(
+                name, mode, *args, generator=generator, _baseclass=False, **kwargs,
+            )
+        elif mode in MonteCarloShapeModes:
+            return MonteCarloShape(
+                name, mode, *args, dtype=dtype, shape=shape, generator=generator, _baseclass=False, **kwargs,
+            )
 
-        raise RuntimeError(f"Invalid montecarlo mode {mode}. Expect: {MonteCarloModes}")
+        raise RuntimeError(f"Invalid MonteCarlo mode {mode}. Expect: {MonteCarloModes}")
 
-    def __init__(self, *args, generator: Generator = None, **kwargs):
+    def __init__(
+            self,
+            name: str,
+            mode: Literal["asimov", "normal", "normal-stats", "normal-unit", "poisson", "covariance"],
+            *args,
+            dtype: Literal["d", "f"] = "d",
+            shape: tuple[int, ...] = (),
+            generator: Generator = None,
+            **kwargs
+        ):
         self._generator = self._create_generator() if generator is None else generator
-        super().__init__(*args, auto_freeze=True, **kwargs)
+        super().__init__(name, *args, auto_freeze=True, **kwargs)
+        self._functions.update(
+            {
+                "asimov": self._fcn_asimov,
+            }
+        )
 
     @property
     def mode(self) -> str:
         return self._mode
 
+    @abstractmethod
+    def _fcn_asimov(self) -> None:
+        raise NotImplementedError()
+
     def next_sample(self) -> None:
         self.unfreeze()
         self.touch(force_computation=True)
+
+    def reset(self) -> None:
+        self._fcn_asimov()
 
     @staticmethod
     def _create_generator() -> Generator:
@@ -162,7 +199,75 @@ class MonteCarlo(BlockToOneNode):
         return Generator(algo)
 
 
-class MonteCarlo1(MonteCarlo):
+class MonteCarloShape(MonteCarlo):
+    r"""
+    Generates a random sample distributed according normal distribution (0, 1).
+
+    inputs:
+        `i`: average model vector
+
+    outputs:
+        `i`: generated sample
+
+    extra arguments:
+        `mode`:
+            * `normal-unit`: normal distribution without correlations (1 input, using for shape)
+    """
+
+    def __init__(
+        self,
+        name: str,
+        mode: Literal["normal-unit"],
+        *args,
+        dtype: Literal["d", "f"] = "d",
+        shape: tuple[int, ...] = (),
+        generator: Generator = None,
+        _baseclass: bool = True,
+        **kwargs,
+    ):
+        if mode not in MonteCarloShapeModes:
+            raise RuntimeError(
+                f"Invalid MonteCarlo mode {mode}. Expect: {MonteCarloShapeModes}"
+            )
+
+        self._mode = mode
+        super().__init__(name, mode, *args, generator=generator, **kwargs)
+        self._add_output("result", shape=shape, dtype=dtype)
+        # TODO: set labels
+
+        self.labels.setdefaults(
+            {
+                "mark": f"MC:{mode[0].upper()}",
+                #        "text": "MonteCarlo sample",
+                #        "plottitle": "MonteCarlo sample",
+                #        "latex": "MonteCarlo sample",
+                #        "axis": "MonteCarlo sample",
+            }
+        )
+        self._functions.update(
+            {
+                "normal-unit": self._fcn_normal_unit,
+            }
+        )
+
+    @staticmethod
+    def _input_names() -> tuple:
+        return ()
+
+    def _fcn_asimov(self) -> None:
+        for _output in self.outputs.iter_data():
+            _output[:] = 0.
+
+    def _fcn_normal_unit(self) -> None:
+        for _output in self.outputs.iter_data():
+            _fill_normal(_output, self._generator)
+
+    def _typefunc(self) -> None:
+        """A output takes this function to determine the dtype and shape"""
+        self.fcn = self._functions[self.mode]
+
+
+class MonteCarloLoc(MonteCarlo):
     r"""
     Generates a random sample distributed according different modes.
 
@@ -175,29 +280,27 @@ class MonteCarlo1(MonteCarlo):
     extra arguments:
         `mode`:
             * `asimov`: store input data without fluctuations
-            * `normalstats`: normal distribution without correlations (1 input)
+            * `normal-stats`: normal distribution without correlations (1 input)
             * `poisson`: uses Poisson distribution
     """
 
-    __slots__ = ()
-
     def __init__(
         self,
-        name,
-        mode: ModeType1,
+        name: str,
+        mode: Literal["asimov", "normal-stats", "poisson"],
         *args,
         generator: Generator | None = None,
         _baseclass: bool = True,
         **kwargs,
     ):
-        if mode not in MonteCarloModes1:
+        if mode not in MonteCarloLocModes:
             raise RuntimeError(
-                f"Invalid MonteCarlo mode {mode}. Expect: {MonteCarloModes1}"
+                f"Invalid MonteCarlo mode {mode}. Expect: {MonteCarloLocModes}"
             )
 
         self._mode = mode
-        super().__init__(name, *args, generator=generator, **kwargs)
-        # TODO: set lables
+        super().__init__(name, mode, *args, generator=generator, **kwargs)
+        # TODO: set labels
 
         self.labels.setdefaults(
             {
@@ -211,7 +314,7 @@ class MonteCarlo1(MonteCarlo):
         self._functions.update(
             {
                 "asimov": self._fcn_asimov,
-                "normalstats": self._fcn_normal_stats,
+                "normal-stats": self._fcn_normal_stats,
                 "poisson": self._fcn_poisson,
             }
         )
@@ -242,7 +345,7 @@ class MonteCarlo1(MonteCarlo):
         self.fcn = self._functions[self.mode]
 
 
-class MonteCarlo2(MonteCarlo):
+class MonteCarloLocScale(MonteCarlo):
     r"""
     Generates a random sample distributed according different modes.
 
@@ -261,21 +364,22 @@ class MonteCarlo2(MonteCarlo):
 
     def __init__(
         self,
-        name,
-        mode: ModeType2,
+        name: str,
+        mode: Literal["normal", "covariance"],
         *args,
         generator: Generator | None = None,
         _baseclass: bool = True,
         **kwargs,
     ):
-        if mode not in MonteCarloModes2:
+        if mode not in MonteCarloLocScaleModes:
             raise RuntimeError(
-                f"Invalid montecarlo mode {mode}. Expect: {MonteCarloModes2}"
+                f"Invalid MonteCarlo mode {mode}. Expect: {MonteCarloLocScaleModes}"
             )
 
         self._mode = mode
-        super().__init__(name, *args, generator=generator, **kwargs)
-        # TODO: set lables
+        super().__init__(name, mode, *args, generator=generator, **kwargs)
+        # TODO: set labels
+
         self.labels.setdefaults(
             {
                 "mark": f"MC:{mode[0].upper()}",
@@ -300,6 +404,12 @@ class MonteCarlo2(MonteCarlo):
     @staticmethod
     def _input_names() -> tuple[str, ...]:
         return "data", "errors"
+
+    def _fcn_asimov(self) -> None:
+        i = 0
+        while i < self.inputs.len_pos():
+            self.outputs[i // 2].data[:] = self.inputs[i].data[:]
+            i += 2
 
     def _fcn_covariance_L(self) -> None:
         i = 0
