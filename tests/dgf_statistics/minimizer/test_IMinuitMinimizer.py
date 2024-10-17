@@ -9,7 +9,8 @@ from scipy.stats import norm
 from dagflow.graph import Graph
 from dagflow.graphviz import savegraph
 from dagflow.input import Input
-from dagflow.lib.Array import Array, OneToOneNode
+from dagflow.lib.Array import Array
+from dagflow.lib.OneToOneNode import OneToOneNode
 from dagflow.parameters import Parameter
 from dagflow.plot import plot_array_1d
 from dgf_statistics.Chi2 import Chi2
