@@ -7,7 +7,7 @@ from numba import njit
 from numpy import add, matmul, sqrt
 
 from dagflow.exception import InitializationError
-from dagflow.lib import BlockToOneNode
+from dagflow.lib.BlockToOneNode import BlockToOneNode
 from dagflow.typefunctions import (
     check_input_matrix_or_diag,
     check_inputs_multiplicable_mat,

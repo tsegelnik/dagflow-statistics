@@ -7,7 +7,7 @@ from numpy import empty, square, subtract
 from scipy.linalg import solve_triangular
 
 from dagflow.exception import TypeFunctionError
-from dagflow.lib import ManyToOneNode
+from dagflow.lib.ManyToOneNode import ManyToOneNode
 from dagflow.typefunctions import (
     check_input_dimension,
     check_input_square,
