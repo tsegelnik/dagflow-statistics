@@ -136,39 +136,24 @@ class MonteCarlo(BlockToOneNode):
         name: str,
         mode: Literal["asimov", "normal", "normal-stats", "normal-unit", "poisson", "covariance"],
         *args,
-        dtype: Literal["d", "f"] = "d",
-        shape: tuple[int, ...] = (),
         generator: Generator | None = None,
         _baseclass: bool = True,
         **kwargs,
     ):
         if not _baseclass:
-            return super().__new__(cls, *args, **kwargs)
-        if mode in MonteCarloLocModes:
-            return MonteCarloLoc(
-                name, mode, *args, generator=generator, _baseclass=False, **kwargs,
-            )
-        elif mode in MonteCarloLocScaleModes:
-            return MonteCarloLocScale(
-                name, mode, *args, generator=generator, _baseclass=False, **kwargs,
-            )
-        elif mode in MonteCarloShapeModes:
-            return MonteCarloShape(
-                name, mode, *args, dtype=dtype, shape=shape, generator=generator, _baseclass=False, **kwargs,
-            )
+            return super().__new__(cls)
 
-        raise RuntimeError(f"Invalid MonteCarlo mode {mode}. Expect: {MonteCarloModes}")
+        subclass = cls._determine_subclass(mode)
+        return subclass(name, mode, *args, generator=generator, _baseclass=False, **kwargs)
 
     def __init__(
-            self,
-            name: str,
-            mode: Literal["asimov", "normal", "normal-stats", "normal-unit", "poisson", "covariance"],
-            *args,
-            dtype: Literal["d", "f"] = "d",
-            shape: tuple[int, ...] = (),
-            generator: Generator = None,
-            **kwargs
-        ):
+        self,
+        name: str,
+        mode: Literal["asimov", "normal", "normal-stats", "normal-unit", "poisson", "covariance"],
+        *args,
+        generator: Generator = None,
+        **kwargs
+    ):
         self._generator = self._create_generator() if generator is None else generator
         super().__init__(name, *args, auto_freeze=True, **kwargs)
         self._functions.update(
@@ -191,6 +176,17 @@ class MonteCarlo(BlockToOneNode):
 
     def reset(self) -> None:
         self._fcn_asimov()
+
+    @staticmethod
+    def _determine_subclass(mode):
+        if mode in MonteCarloLocModes:
+            return MonteCarloLoc
+        elif mode in MonteCarloLocScaleModes:
+            return MonteCarloLocScale
+        elif mode in MonteCarloShapeModes:
+            return MonteCarloShape
+
+        raise RuntimeError(f"Invalid MonteCarlo mode {mode}. Expect: {MonteCarloModes}")
 
     @staticmethod
     def _create_generator() -> Generator:
