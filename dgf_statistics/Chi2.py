@@ -2,25 +2,23 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from numba import njit
-from numpy import empty, square, subtract
-from scipy.linalg import solve_triangular
-
-from dagflow.exception import TypeFunctionError
-from dagflow.lib.ManyToOneNode import ManyToOneNode
-from dagflow.typefunctions import (
+from dagflow.core.exception import TypeFunctionError
+from dagflow.core.type_functions import (
     check_input_dimension,
     check_input_square,
     check_inputs_multiplicable_mat,
     check_inputs_multiplicity,
     check_inputs_same_shape,
 )
+from dagflow.lib.abstract import ManyToOneNode
+from numba import njit
+from numpy import empty, square, subtract
+from scipy.linalg import solve_triangular
 
 if TYPE_CHECKING:
+    from dagflow.core.node import Input, Output
     from numpy import double
     from numpy.typing import NDArray
-
-    from dagflow.node import Input, Output
 
 
 @njit(cache=True)
@@ -85,7 +83,7 @@ class Chi2(ManyToOneNode):
         self._theory_tuple = ()  # input: 1
         self._errors_tuple = ()  # input: 2
         self._result = self.outputs[0]
-        self._functions.update({"1d": self._fcn_1d, "2d": self._fcn_2d})
+        self._functions_dict.update({"1d": self._fcn_1d, "2d": self._fcn_2d})
 
     @staticmethod
     def _input_names() -> tuple[str, ...]:
@@ -99,22 +97,16 @@ class Chi2(ManyToOneNode):
         ret = self._result.data
         ret[0] = 0.0
 
-        for theory, data, errors in zip(
-            self._theory_tuple, self._data_tuple, self._errors_tuple
-        ):
+        for theory, data, errors in zip(self._theory_tuple, self._data_tuple, self._errors_tuple):
             _chi2_1d_add(theory.data, data.data, errors.data, ret)
 
     def _fcn_2d(self) -> None:
         buffer = self._buffer
         ret = 0.0
-        for theory, data, errors in zip(
-            self._theory_tuple, self._data_tuple, self._errors_tuple
-        ):
+        for theory, data, errors in zip(self._theory_tuple, self._data_tuple, self._errors_tuple):
             # errors is triangular decomposition of covariance matrix (L)
             subtract(theory.data, data.data, out=buffer)
-            solve_triangular(
-                errors.data, buffer, lower=self.matrix_is_lower, overwrite_b=True
-            )
+            solve_triangular(errors.data, buffer, lower=self.matrix_is_lower, overwrite_b=True)
             square(buffer, out=buffer)
             ret += buffer.sum()
 
@@ -146,7 +138,7 @@ class Chi2(ManyToOneNode):
                 node=self,
                 input=errors,
             )
-        self.fcn = self._functions[f"{dim}d"]
+        self.function = self._functions_dict[f"{dim}d"]
 
         self._result.dd.shape = (1,)
         self._result.dd.dtype = self._data_tuple[0].dd.dtype

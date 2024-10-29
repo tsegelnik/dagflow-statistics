@@ -6,9 +6,9 @@ from typing import TYPE_CHECKING, Literal
 from numba import njit
 from numpy import add, matmul, sqrt
 
-from dagflow.exception import InitializationError
-from dagflow.lib.BlockToOneNode import BlockToOneNode
-from dagflow.typefunctions import (
+from dagflow.core.exception import InitializationError
+from dagflow.lib.abstract import BlockToOneNode
+from dagflow.core.type_functions import (
     check_input_matrix_or_diag,
     check_inputs_multiplicable_mat,
     check_inputs_multiplicity,
@@ -87,9 +87,7 @@ def _normal(
 
 
 @njit(cache=True)
-def _normal_stats(
-    mean: NDArray[double], result: NDArray[double], gen: Generator
-) -> None:
+def _normal_stats(mean: NDArray[double], result: NDArray[double], gen: Generator) -> None:
     func = lambda x: x + sqrt(x) * gen.normal()
     for i in range(len(result)):
         result[i] = func(mean[i])
@@ -146,36 +144,49 @@ class MonteCarlo(BlockToOneNode):
             return super().__new__(cls, *args, **kwargs)
         if mode in MonteCarloLocModes:
             return MonteCarloLoc(
-                name, mode, *args, generator=generator, _baseclass=False, **kwargs,
+                name,
+                mode,
+                *args,
+                generator=generator,
+                _baseclass=False,
+                **kwargs,
             )
         elif mode in MonteCarloLocScaleModes:
             return MonteCarloLocScale(
-                name, mode, *args, generator=generator, _baseclass=False, **kwargs,
+                name,
+                mode,
+                *args,
+                generator=generator,
+                _baseclass=False,
+                **kwargs,
             )
         elif mode in MonteCarloShapeModes:
             return MonteCarloShape(
-                name, mode, *args, dtype=dtype, shape=shape, generator=generator, _baseclass=False, **kwargs,
+                name,
+                mode,
+                *args,
+                dtype=dtype,
+                shape=shape,
+                generator=generator,
+                _baseclass=False,
+                **kwargs,
             )
 
         raise RuntimeError(f"Invalid MonteCarlo mode {mode}. Expect: {MonteCarloModes}")
 
     def __init__(
-            self,
-            name: str,
-            mode: Literal["asimov", "normal", "normal-stats", "normal-unit", "poisson", "covariance"],
-            *args,
-            dtype: Literal["d", "f"] = "d",
-            shape: tuple[int, ...] = (),
-            generator: Generator = None,
-            **kwargs
-        ):
+        self,
+        name: str,
+        mode: Literal["asimov", "normal", "normal-stats", "normal-unit", "poisson", "covariance"],
+        *args,
+        dtype: Literal["d", "f"] = "d",
+        shape: tuple[int, ...] = (),
+        generator: Generator | None = None,
+        **kwargs,
+    ):
         self._generator = self._create_generator() if generator is None else generator
-        super().__init__(name, *args, auto_freeze=True, **kwargs)
-        self._functions.update(
-            {
-                "asimov": self._fcn_asimov,
-            }
-        )
+        super().__init__(name, *args, **kwargs)
+        self._functions_dict.update({"asimov": self._fcn_asimov})
 
     @property
     def mode(self) -> str:
@@ -188,13 +199,20 @@ class MonteCarlo(BlockToOneNode):
     def next_sample(self) -> None:
         self.unfreeze()
         self.touch(force_computation=True)
+        # We need to set the flag frozen manually
+        self.fd.frozen = True
 
     def reset(self) -> None:
+        self.fd.being_evaluated = True
         self._fcn_asimov()
+        self.fd.being_evaluated = False
+        # We need to set the flag frozen manually
+        self.fd.frozen = True
 
     @staticmethod
     def _create_generator() -> Generator:
         from numpy.random import MT19937, Generator
+
         algo = MT19937(seed=0)
         return Generator(algo)
 
@@ -221,14 +239,12 @@ class MonteCarloShape(MonteCarlo):
         *args,
         dtype: Literal["d", "f"] = "d",
         shape: tuple[int, ...] = (),
-        generator: Generator = None,
+        generator: Generator | None = None,
         _baseclass: bool = True,
         **kwargs,
     ):
         if mode not in MonteCarloShapeModes:
-            raise RuntimeError(
-                f"Invalid MonteCarlo mode {mode}. Expect: {MonteCarloShapeModes}"
-            )
+            raise RuntimeError(f"Invalid MonteCarlo mode {mode}. Expect: {MonteCarloShapeModes}")
 
         self._mode = mode
         super().__init__(name, mode, *args, generator=generator, **kwargs)
@@ -244,7 +260,7 @@ class MonteCarloShape(MonteCarlo):
                 #        "axis": "MonteCarlo sample",
             }
         )
-        self._functions.update(
+        self._functions_dict.update(
             {
                 "normal-unit": self._fcn_normal_unit,
             }
@@ -256,15 +272,19 @@ class MonteCarloShape(MonteCarlo):
 
     def _fcn_asimov(self) -> None:
         for _output in self.outputs.iter_data():
-            _output[:] = 0.
+            _output[:] = 0.0
+        # We need to set the flag frozen manually
+        self.fd.frozen = True
 
     def _fcn_normal_unit(self) -> None:
         for _output in self.outputs.iter_data():
             _fill_normal(_output, self._generator)
+        # We need to set the flag frozen manually
+        self.fd.frozen = True
 
     def _typefunc(self) -> None:
         """A output takes this function to determine the dtype and shape"""
-        self.fcn = self._functions[self.mode]
+        self.function = self._functions_dict[self.mode]
 
 
 class MonteCarloLoc(MonteCarlo):
@@ -294,9 +314,7 @@ class MonteCarloLoc(MonteCarlo):
         **kwargs,
     ):
         if mode not in MonteCarloLocModes:
-            raise RuntimeError(
-                f"Invalid MonteCarlo mode {mode}. Expect: {MonteCarloLocModes}"
-            )
+            raise RuntimeError(f"Invalid MonteCarlo mode {mode}. Expect: {MonteCarloLocModes}")
 
         self._mode = mode
         super().__init__(name, mode, *args, generator=generator, **kwargs)
@@ -311,7 +329,7 @@ class MonteCarloLoc(MonteCarlo):
                 #        "axis": "MonteCarlo sample",
             }
         )
-        self._functions.update(
+        self._functions_dict.update(
             {
                 "asimov": self._fcn_asimov,
                 "normal-stats": self._fcn_normal_stats,
@@ -326,14 +344,20 @@ class MonteCarloLoc(MonteCarlo):
     def _fcn_asimov(self) -> None:
         for _input, _output in zip(self.inputs.iter_data(), self.outputs.iter_data()):
             _output[:] = _input[:]
+        # We need to set the flag frozen manually
+        self.fd.frozen = True
 
     def _fcn_normal_stats(self) -> None:
         for _input, _output in zip(self.inputs.iter_data(), self.outputs.iter_data()):
             _normal_stats(_input, _output, self._generator)
+        # We need to set the flag frozen manually
+        self.fd.frozen = True
 
     def _fcn_poisson(self) -> None:
         for _input, _output in zip(self.inputs.iter_data(), self.outputs.iter_data()):
             _poisson(_input, _output, self._generator)
+        # We need to set the flag frozen manually
+        self.fd.frozen = True
 
     def _typefunc(self) -> None:
         """A output takes this function to determine the dtype and shape"""
@@ -342,7 +366,7 @@ class MonteCarloLoc(MonteCarlo):
         for i in range(n):
             copy_from_input_to_output(self, i, i)
 
-        self.fcn = self._functions[self.mode]
+        self.function = self._functions_dict[self.mode]
 
 
 class MonteCarloLocScale(MonteCarlo):
@@ -372,9 +396,7 @@ class MonteCarloLocScale(MonteCarlo):
         **kwargs,
     ):
         if mode not in MonteCarloLocScaleModes:
-            raise RuntimeError(
-                f"Invalid MonteCarlo mode {mode}. Expect: {MonteCarloLocScaleModes}"
-            )
+            raise RuntimeError(f"Invalid MonteCarlo mode {mode}. Expect: {MonteCarloLocScaleModes}")
 
         self._mode = mode
         super().__init__(name, mode, *args, generator=generator, **kwargs)
@@ -394,7 +416,7 @@ class MonteCarloLocScale(MonteCarlo):
                 f"mode must be in {MonteCarloModes}, but given {mode}",
                 node=self,
             )
-        self._functions.update(
+        self._functions_dict.update(
             {
                 "normal": self._fcn_normal,
                 "covariance": self._fcn_covariance_L,
@@ -410,6 +432,8 @@ class MonteCarloLocScale(MonteCarlo):
         while i < self.inputs.len_pos():
             self.outputs[i // 2].data[:] = self.inputs[i].data[:]
             i += 2
+        # We need to set the flag frozen manually
+        self.fd.frozen = True
 
     def _fcn_covariance_L(self) -> None:
         i = 0
@@ -421,6 +445,8 @@ class MonteCarloLocScale(MonteCarlo):
                 self._generator,
             )
             i += 2
+        # We need to set the flag frozen manually
+        self.fd.frozen = True
 
     def _fcn_normal(self) -> None:
         i = 0
@@ -432,6 +458,8 @@ class MonteCarloLocScale(MonteCarlo):
                 self._generator,
             )
             i += 2
+        # We need to set the flag frozen manually
+        self.fd.frozen = True
 
     def _typefunc(self) -> None:
         """A output takes this function to determine the dtype and shape"""
@@ -446,4 +474,4 @@ class MonteCarloLocScale(MonteCarlo):
             check_inputs_multiplicable_mat(self, i, i + 1)
             copy_from_input_to_output(self, 2 * i, i)
 
-        self.fcn = self._functions[self.mode]
+        self.function = self._functions_dict[self.mode]

@@ -3,8 +3,8 @@ from __future__ import annotations
 from math import sqrt
 from typing import TYPE_CHECKING
 
-from dagflow.lib.BlockToOneNode import BlockToOneNode
-from dagflow.typefunctions import (
+from dagflow.lib.abstract import BlockToOneNode
+from dagflow.core.type_functions import (
     AllPositionals,
     check_input_dimension,
     check_inputs_multiplicity,
@@ -63,7 +63,7 @@ class CNPStat(BlockToOneNode):
     def _input_names() -> tuple[str, ...]:
         return "data", "theory"
 
-    def _fcn(self) -> None:
+    def _function(self) -> None:
         i = 0
         while i < self.inputs.len_pos():
             _cnp(

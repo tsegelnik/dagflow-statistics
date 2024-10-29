@@ -3,9 +3,9 @@ from pytest import mark
 from numpy import allclose, arange, log, finfo
 from scipy.special import gammaln
 
-from dagflow.graph import Graph
-from dagflow.graphviz import savegraph
-from dagflow.lib.Array import Array
+from dagflow.core.graph import Graph
+from dagflow.plot.graphviz import savegraph
+from dagflow.lib.common import Array
 
 from dgf_statistics.LogPoisson import LogPoisson
 
