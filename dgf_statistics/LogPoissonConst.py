@@ -5,16 +5,16 @@ from typing import TYPE_CHECKING, Literal
 
 from numba import njit
 
-from dagflow.exception import InitializationError
-from dagflow.inputhandler import MissingInputAddOne
-from dagflow.node import Node
+from dagflow.core.exception import InitializationError
+from dagflow.core.input_handler import MissingInputAddOne
+from dagflow.core.node import Node
 
 if TYPE_CHECKING:
     from numpy import double
     from numpy.typing import NDArray
 
-    from dagflow.input import Input
-    from dagflow.output import Output
+    from dagflow.core.input import Input
+    from dagflow.core.output import Output
 
 
 LogPoissonModes = {"poisson", "poisson_ratio"}
@@ -87,7 +87,7 @@ class LogPoissonConst(Node):
         self._mode = mode
         self._data = self._add_input("data")  # input: 0
         self._const = self._add_output("const")  # output: 0
-        self._functions.update(
+        self._functions_dict.update(
             {"poisson_ratio": self._fcn_poisson_ratio, "poisson": self._fcn_poisson}
         )
 
@@ -111,4 +111,4 @@ class LogPoissonConst(Node):
         """A output takes this function to determine the dtype and shape"""
         self._const.dd.shape = (1,)
         self._const.dd.dtype = self._data.dd.dtype
-        self.fcn = self._functions[self.mode]
+        self.function = self._functions_dict[self.mode]

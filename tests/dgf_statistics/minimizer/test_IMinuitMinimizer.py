@@ -2,17 +2,18 @@ from math import sqrt
 
 from matplotlib import pyplot as plt  # fmt:skip
 from numpy import allclose, linspace
-from numpy.random import Generator, SeedSequence, MT19937
+from numpy.random import MT19937, Generator, SeedSequence
 from pytest import mark
 from scipy.stats import norm
 
-from dagflow.graph import Graph
-from dagflow.graphviz import savegraph
-from dagflow.input import Input
-from dagflow.lib.Array import Array
-from dagflow.lib.OneToOneNode import OneToOneNode
+from dagflow.core.graph import Graph
+from dagflow.core.input import Input
+from dagflow.lib.abstract import OneToOneNode
+from dagflow.lib.common import Array
 from dagflow.parameters import Parameter
-from dagflow.plot import plot_array_1d
+from dagflow.plot.graphviz import savegraph
+from dagflow.plot.plot import plot_array_1d
+
 from dgf_statistics.Chi2 import Chi2
 from dgf_statistics.CNPStat import CNPStat
 from dgf_statistics.minimizer.iminuitminimizer import IMinuitMinimizer
@@ -33,7 +34,7 @@ class Model(OneToOneNode):
         self._mu = self._add_input("mu", positional=False)
         self._sigma = self._add_input("sigma", positional=False)
 
-    def _fcn(self):
+    def _function(self):
         mu = self._mu.data[0]
         sigma = self._sigma.data[0]
         for inp, out in zip(self.inputs.iter_data(), self.outputs.iter_data()):
@@ -50,7 +51,7 @@ class Shift(OneToOneNode):
         super().__init__(*args, **kwargs)
         self._shift = shift
 
-    def _fcn(self):
+    def _function(self):
         for inp, out in zip(self.inputs.iter_data(), self.outputs.iter_data()):
             out[:] = self._shift + inp[:]
 
@@ -79,7 +80,7 @@ def test_IMinuitMinimizer(mu, sigma, mode, testname):
         model = pdf0.outputs[0]
 
         # perform fluctuations of data within MC and shift the result with constant background
-        sequence, = SeedSequence(0).spawn(1)
+        (sequence,) = SeedSequence(0).spawn(1)
         gen = Generator(MT19937(sequence))
         mc = MonteCarlo("MC", mode=mode, generator=gen)
         model >> mc
@@ -117,7 +118,9 @@ def test_IMinuitMinimizer(mu, sigma, mode, testname):
     # perform a minimization
     parmu = Parameter(parent=None, value_output=MuFit.outputs[0])
     parsigma = Parameter(parent=None, value_output=SigmaFit.outputs[0])
-    minimizer = IMinuitMinimizer(statistic=chi.outputs[0], parameters=[parmu, parsigma], verbose=_verbose)
+    minimizer = IMinuitMinimizer(
+        statistic=chi.outputs[0], parameters=[parmu, parsigma], verbose=_verbose
+    )
     res = minimizer.fit()
 
     assert res["success"]
@@ -184,7 +187,7 @@ def draw_fit(x, mc, model, modelfit, mode, figname):
         color="black",
         label="data+fluct." if mode != "asimov" else "asimov MC",
     )
-    plot_array_1d(model.data+_Background, meshes=x, linestyle="--", label="data")
+    plot_array_1d(model.data + _Background, meshes=x, linestyle="--", label="data")
     plot_array_1d(modelfit.data, meshes=x, linestyle="--", label="fit")
     ax.legend()
     plt.savefig(figname)

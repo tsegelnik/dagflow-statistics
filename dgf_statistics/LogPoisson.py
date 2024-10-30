@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from dagflow.metanode import MetaNode
+from dagflow.core.meta_node import MetaNode
 
 from dgf_statistics.LogPoissonConst import LogPoissonConst
 from dgf_statistics.LogPoissonMain import LogPoissonMain
@@ -10,7 +10,7 @@ from dgf_statistics.LogPoissonMain import LogPoissonMain
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-    from dagflow.node import Node
+    from dagflow.core.node import Node
 
     from dgf_statistics.LogPoissonConst import ModeType
 

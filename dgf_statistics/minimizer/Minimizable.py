@@ -3,9 +3,9 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from dagflow.exception import InitializationError
-from dagflow.logger import Logger, get_logger
-from dagflow.output import Output
+from dagflow.core.exception import InitializationError
+from dagflow.tools.logger import Logger, get_logger
+from dagflow.core.output import Output
 from dagflow.parameters import Parameter
 
 if TYPE_CHECKING:

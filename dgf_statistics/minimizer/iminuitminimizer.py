@@ -9,7 +9,7 @@ from .fitresult import FitResult
 from .minimizerbase import MinimizerBase
 
 if TYPE_CHECKING:
-    from dagflow.output import Output
+    from dagflow.core.output import Output
     from dagflow.parameters import Parameter
     from numpy.typing import NDArray
 
@@ -19,7 +19,7 @@ try:
     import ROOT  # fmt: skip
     CppRuntimeError = ROOT.std.runtime_error
 except Exception:
-    from dagflow.exception import DagflowError  # fmt:skip
+    from dagflow.core.exception import DagflowError  # fmt:skip
     CppRuntimeError = DagflowError
 
 

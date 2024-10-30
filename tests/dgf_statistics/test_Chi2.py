@@ -1,14 +1,14 @@
 #!/usr/bin/env python
-from dgf_statistics.Chi2 import Chi2
-from dgf_statistics.CNPStat import CNPStat
-
 from numpy import allclose, arange, array, diag, finfo, matmul
 from numpy.linalg import cholesky, inv
 from pytest import mark
 
-from dagflow.graph import Graph
-from dagflow.graphviz import savegraph
-from dagflow.lib.Array import Array
+from dagflow.core.graph import Graph
+from dagflow.lib.common import Array
+from dagflow.plot.graphviz import savegraph
+
+from dgf_statistics.Chi2 import Chi2
+from dgf_statistics.CNPStat import CNPStat
 
 
 def test_Chi2_01(debug_graph, testname):
@@ -84,9 +84,9 @@ def test_Chi2_03(duplicate: bool, debug_graph, testname):
 
     scale = duplicate and 2.0 or 1.0
     diff = array(dataArr - theoryArr).T
-    truth1 = scale*matmul(diff.T, matmul(inv(covmat), diff))
+    truth1 = scale * matmul(diff.T, matmul(inv(covmat), diff))
     ndiff = matmul(inv(Lmat), diff)
-    truth2 = scale*matmul(ndiff.T, ndiff)
+    truth2 = scale * matmul(ndiff.T, ndiff)
 
     assert allclose(res, truth1, rtol=0, atol=finfo("d").resolution)
     assert allclose(res, truth2, rtol=0, atol=finfo("d").resolution)
