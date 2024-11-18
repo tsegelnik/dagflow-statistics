@@ -9,11 +9,11 @@ from numpy import add, matmul, sqrt
 from dagflow.core.exception import InitializationError
 from dagflow.lib.abstract import BlockToOneNode
 from dagflow.core.type_functions import (
-    check_input_matrix_or_diag,
-    check_inputs_multiplicable_mat,
-    check_inputs_multiplicity,
-    check_outputs_number,
-    copy_from_input_to_output,
+    check_inputs_are_matrices_or_diagonals,
+    check_inputs_are_matrix_multipliable,
+    check_inputs_number_is_divisible_by_N,
+    check_number_of_outputs,
+    copy_from_inputs_to_outputs,
 )
 
 if TYPE_CHECKING:
@@ -362,9 +362,9 @@ class MonteCarloLoc(MonteCarlo):
     def _typefunc(self) -> None:
         """A output takes this function to determine the dtype and shape"""
         n = self.inputs.len_pos()
-        check_outputs_number(self, n)
+        check_number_of_outputs(self, n)
         for i in range(n):
-            copy_from_input_to_output(self, i, i)
+            copy_from_inputs_to_outputs(self, i, i)
 
         self.function = self._functions_dict[self.mode]
 
@@ -463,15 +463,15 @@ class MonteCarloLocScale(MonteCarlo):
 
     def _typefunc(self) -> None:
         """A output takes this function to determine the dtype and shape"""
-        check_inputs_multiplicity(self, 2)
+        check_inputs_number_is_divisible_by_N(self, 2)
         n = self.inputs.len_pos()
-        check_outputs_number(self, n // 2)
+        check_number_of_outputs(self, n // 2)
 
         if self.mode == "covariance":
-            check_input_matrix_or_diag(self, slice(1, n, 2), check_square=True)
+            check_inputs_are_matrices_or_diagonals(self, slice(1, n, 2), check_square=True)
 
         for i in range(n // 2):
-            check_inputs_multiplicable_mat(self, i, i + 1)
-            copy_from_input_to_output(self, 2 * i, i)
+            check_inputs_are_matrix_multipliable(self, i, i + 1)
+            copy_from_inputs_to_outputs(self, 2 * i, i)
 
         self.function = self._functions_dict[self.mode]

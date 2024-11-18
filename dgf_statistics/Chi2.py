@@ -4,11 +4,11 @@ from typing import TYPE_CHECKING
 
 from dagflow.core.exception import TypeFunctionError
 from dagflow.core.type_functions import (
-    check_input_dimension,
-    check_input_square,
-    check_inputs_multiplicable_mat,
-    check_inputs_multiplicity,
-    check_inputs_same_shape,
+    check_dimension_of_inputs,
+    check_inputs_are_square_matrices,
+    check_inputs_are_matrix_multipliable,
+    check_inputs_number_is_divisible_by_N,
+    check_inputs_have_same_shape,
 )
 from dagflow.lib.abstract import ManyToOneNode
 from numba import njit
@@ -114,24 +114,24 @@ class Chi2(ManyToOneNode):
 
     def _typefunc(self) -> None:
         """A output takes this function to determine the dtype and shape"""
-        check_inputs_multiplicity(self, 3)
+        check_inputs_number_is_divisible_by_N(self, 3)
         self._data_tuple = tuple(self.inputs[::3])  # input: 0
         self._theory_tuple = tuple(self.inputs[1::3])  # input: 1
         self._errors_tuple = tuple(self.inputs[2::3])  # input: 1
 
-        check_input_dimension(self, slice(0, None, 3), 1)
-        check_input_dimension(self, slice(1, None, 3), 1)
-        check_inputs_same_shape(self, (0, 1))
-        check_inputs_same_shape(self, slice(0, None, 3))
-        check_inputs_same_shape(self, slice(1, None, 3))
-        check_inputs_same_shape(self, slice(2, None, 3))
+        check_dimension_of_inputs(self, slice(0, None, 3), 1)
+        check_dimension_of_inputs(self, slice(1, None, 3), 1)
+        check_inputs_have_same_shape(self, (0, 1))
+        check_inputs_have_same_shape(self, slice(0, None, 3))
+        check_inputs_have_same_shape(self, slice(1, None, 3))
+        check_inputs_have_same_shape(self, slice(2, None, 3))
         errors = self._errors_tuple[0]
         dim = errors.dd.dim
         if dim == 2:
-            check_input_square(self, "errors")
-            check_inputs_multiplicable_mat(self, "errors", "data")
+            check_inputs_are_square_matrices(self, "errors")
+            check_inputs_are_matrix_multipliable(self, "errors", "data")
         elif dim == 1:
-            check_inputs_same_shape(self, ("data", "errors"))
+            check_inputs_have_same_shape(self, ("data", "errors"))
         else:
             raise TypeFunctionError(
                 f"errors must be 1d or 2d, but given {dim}d!",

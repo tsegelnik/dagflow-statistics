@@ -6,10 +6,10 @@ from typing import TYPE_CHECKING
 from dagflow.lib.abstract import BlockToOneNode
 from dagflow.core.type_functions import (
     AllPositionals,
-    check_input_dimension,
-    check_inputs_multiplicity,
-    check_inputs_same_shape,
-    copy_from_input_to_output,
+    check_dimension_of_inputs,
+    check_inputs_number_is_divisible_by_N,
+    check_inputs_have_same_shape,
+    copy_from_inputs_to_outputs,
 )
 from numba import njit
 
@@ -75,10 +75,10 @@ class CNPStat(BlockToOneNode):
 
     def _typefunc(self) -> None:
         """A output takes this function to determine the dtype and shape"""
-        check_inputs_multiplicity(self, 2)
-        check_input_dimension(self, AllPositionals, 1)
+        check_inputs_number_is_divisible_by_N(self, 2)
+        check_dimension_of_inputs(self, AllPositionals, 1)
         i = 0
         while i < self.inputs.len_pos():
-            check_inputs_same_shape(self, (i, i + 1))
-            copy_from_input_to_output(self, i, i // 2)
+            check_inputs_have_same_shape(self, (i, i + 1))
+            copy_from_inputs_to_outputs(self, i, i // 2)
             i += 2
