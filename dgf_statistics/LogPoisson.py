@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from dagflow.metanode import MetaNode
+from dagflow.core.meta_node import MetaNode
 
 from dgf_statistics.LogPoissonConst import LogPoissonConst
 from dgf_statistics.LogPoissonMain import LogPoissonMain
@@ -10,7 +10,7 @@ from dgf_statistics.LogPoissonMain import LogPoissonMain
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-    from dagflow.node import Node
+    from dagflow.core.node import Node
 
     from dgf_statistics.LogPoissonConst import ModeType
 
@@ -72,42 +72,3 @@ class LogPoisson(MetaNode):
         )
         return logPoisson
 
-
-# TODO: fix this method
-#    @classmethod
-#    def replicate(
-#        cls,
-#        mode: ModeType = "poisson",
-#        *,
-#        names: Mapping[str, str] = {
-#           "LogPoissonConst": "LogPoissonConst",
-#           "LogPoissonMain": "LogPoisson",
-#        }
-#        labels: Mapping = {},
-#        replicate_outputs: Tuple[KeyLike, ...] = ((),),
-#    ) -> Tuple["LogPoisson", "NodeStorage"]:
-#        storage = NodeStorage(default_containers=True)
-#        nodes = storage("nodes")
-#        inputs = storage("inputs")
-#        outputs = storage("outputs")
-#
-#        logPoissons = cls(mode=mode, bare=True)
-#        key_LogPoissonMain = (names["LogPoissonMain"],)
-#        key_LogPoissonConst = (names["LogPoissonConst"],)
-#
-#        logPoissons._init_LogPoissonConst(mode, names["LogPoissonConst"], labels.get("LogPoissonConst", {}))
-#        outputs[key_LogPoissonConst + ("const",)] = logPoissons._LogPoissonConst.outputs["const"]
-#
-#        label_int = labels.get("LogPoisson", {})
-#        for key in replicate_outputs:
-#            if isinstance(key, str):
-#                key = (key,)
-#            name = ".".join(key_LogPoissonMain + key)
-#            logPoissonMain = logPoissons._add_LogPoissonMain(name, label_int, positionals=False)
-#            logPoissonMain()
-#            nodes[key_LogPoissonMain + key] = logPoissonMain
-#            inputs[key_LogPoissonMain + key] = logPoissonMain.inputs[0]
-#            outputs[key_LogPoissonMain + key] = logPoissonMain.outputs[0]
-#
-#        NodeStorage.update_current(storage, strict=True)
-#        return logPoissons, storage

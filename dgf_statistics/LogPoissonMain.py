@@ -5,16 +5,16 @@ from typing import TYPE_CHECKING
 
 from numba import njit
 
-from dagflow.inputhandler import MissingInputAddOne
-from dagflow.node import Node
-from dagflow.typefunctions import check_inputs_multiplicity, check_inputs_same_shape
+from dagflow.core.input_handler import MissingInputAddOne
+from dagflow.core.node import Node
+from dagflow.core.type_functions import check_inputs_number_is_divisible_by_N, check_inputs_have_same_shape
 
 if TYPE_CHECKING:
     from numpy import double
     from numpy.typing import NDArray
 
-    from dagflow.input import Input
-    from dagflow.output import Output
+    from dagflow.core.input import Input
+    from dagflow.core.output import Output
 
 
 @njit(cache=True)
@@ -74,7 +74,7 @@ class LogPoissonMain(Node):
         self._const = self._add_input("const", positional=False)  # input
         self._poisson = self._add_output("poisson")  # output: 0
 
-    def _fcn(self):
+    def _function(self):
         data = self._poisson.data
         data[0] = 0.0
         i = 0
@@ -89,10 +89,10 @@ class LogPoissonMain(Node):
 
     def _typefunc(self) -> None:
         """A output takes this function to determine the dtype and shape"""
-        check_inputs_multiplicity(self, 2)
+        check_inputs_number_is_divisible_by_N(self, 2)
         i = 0
         while i < self.inputs.len_pos():
-            check_inputs_same_shape(self, (i, i + 1))
+            check_inputs_have_same_shape(self, (i, i + 1))
             i += 2
         self._poisson.dd.shape = (1,)
         self._poisson.dd.dtype = self._data.dd.dtype

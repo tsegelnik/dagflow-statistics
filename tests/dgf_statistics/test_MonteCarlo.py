@@ -1,16 +1,17 @@
 from os.path import join
-from dgf_statistics.MonteCarlo import MonteCarlo
 
 from matplotlib import pyplot as plt
 from numpy import allclose, arange, diag, dot, eye, fabs, fill_diagonal, ones
 from numpy.linalg import cholesky, inv
-from numpy.random import Generator, SeedSequence, MT19937
+from numpy.random import MT19937, Generator, SeedSequence
 from pytest import mark
 
-from dagflow.graph import Graph
-from dagflow.graphviz import savegraph
-from dagflow.lib import Array
-from dagflow.plot import add_colorbar, closefig, plot_array_1d, plot_auto, savefig
+from dagflow.core.graph import Graph
+from dagflow.lib.common import Array
+from dagflow.plot.graphviz import savegraph
+from dagflow.plot.plot import add_colorbar, closefig, plot_array_1d, plot_auto, savefig
+
+from dgf_statistics.MonteCarlo import MonteCarlo
 
 
 @mark.parametrize("scale", [0.1, 10000.0])
@@ -26,7 +27,7 @@ from dagflow.plot import add_colorbar, closefig, plot_array_1d, plot_auto, savef
 )
 @mark.parametrize("datanum", [0, 1, 2, "all"])
 def test_mc(mcmode, scale, datanum, debug_graph, testname, tmp_path):
-    sequence, = SeedSequence(6).spawn(1)
+    (sequence,) = SeedSequence(6).spawn(1)
     algo = MT19937(sequence)
     generator = Generator(algo)
     size = 20
@@ -38,13 +39,10 @@ def test_mc(mcmode, scale, datanum, debug_graph, testname, tmp_path):
     with Graph(close_on_exit=True, debug=debug_graph) as graph:
         if datanum == "all":
             mcdata_v = tuple(
-                MCTestData(data, mcmode, index=-i - 1, scale=scale)
-                for i, data in enumerate(data)
+                MCTestData(data, mcmode, index=-i - 1, scale=scale) for i, data in enumerate(data)
             )
         else:
-            mcdata_v = (
-                MCTestData(data[datanum], mcmode, index=datanum + 1, scale=scale),
-            )
+            mcdata_v = (MCTestData(data[datanum], mcmode, index=datanum + 1, scale=scale),)
 
         toymc = MonteCarlo(name="MonteCarlo", mode=mcmode, generator=generator)
         for mcdata in mcdata_v:
@@ -112,9 +110,9 @@ def test_mc_shape(shape, dtype, debug_graph):
 
     assert toymc.outputs[0].data.shape == shape
     toymc.next_sample()
-    assert not allclose(toymc.outputs[0].data, 0.)
+    assert not allclose(toymc.outputs[0].data, 0.0)
     toymc.reset()
-    assert allclose(toymc.outputs[0].data, 0.)
+    assert allclose(toymc.outputs[0].data, 0.0)
 
 
 class MCTestData:
@@ -169,9 +167,7 @@ class MCTestData:
     def prepare_covmatrix_syst(self):
         self.err_syst = self.syst_unc_rel * self.data
         self.err_syst_sqr = diag(self.err_syst**0.5)
-        self.covmat_syst = dot(
-            dot(self.err_syst_sqr.T, self.corrmat), self.err_syst_sqr
-        )
+        self.covmat_syst = dot(dot(self.err_syst_sqr.T, self.corrmat), self.err_syst_sqr)
 
     def prepare_covmatrix_full(self):
         self.covmat_full = diag(self.err_stat2) + self.covmat_syst
@@ -239,9 +235,7 @@ class MCTestData:
         closefig()
 
         ax = self._create_fig("Check diff {index}, input {}, scale {scale}")
-        plot_array_1d(
-            self.mcdiff, edges=self.edges, yerr=self.err_stat, label="raw difference"
-        )
+        plot_array_1d(self.mcdiff, edges=self.edges, yerr=self.err_stat, label="raw difference")
         ax.legend()
         self.savefig("diff", self.index)
         closefig()
@@ -276,7 +270,7 @@ class MCTestData:
         self.matshow(self.covmat_L, "Covariance matrix decomposed: L", "covmat_L")
 
     def check_reset(self):
-        assert(self.data - self.mcdata == 0.0).all()
+        assert (self.data - self.mcdata == 0.0).all()
 
     def check_stats(self):
         if self.mctype == "asimov":
