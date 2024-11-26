@@ -75,9 +75,8 @@ class MinimizerBase:
                     f" {type(parameters)=}!"
                 )
             for parameter_name, parameter in parameters.items():
-                self.append_par(parameter)
+                self.append_name_par(parameter_name, parameter)
                 self.copy_initial_values(parameter)
-                self.append_par_name(parameter_name)
 
         if isinstance(logger, Logger):
             self._logger = logger
@@ -133,18 +132,13 @@ class MinimizerBase:
         for par, value in self._initial_parameters.items():
             par.push(value)
 
-    def append_par(self, par: Parameter) -> None:
-        if not isinstance(par, Parameter):
-            raise RuntimeError(
-                f"'par' must be a Parameter, but given {par=}, {type(par)=}!"
-            )
+    def append_name_par(self, name: str, par: Parameter) -> None:
+        for obj, otype in ((name, str), (par, Parameter)):
+            if not isinstance(obj, otype):
+                raise RuntimeError(
+                    f"'{obj}' must be a {otype}, but given {par=}, {type(par)=}!"
+                )
         self._parameters.append(par)
-
-    def append_par_name(self, name: str) -> None:
-        if not isinstance(name, str):
-            raise RuntimeError(
-                f"'name' must be a str, but given {name=}, {type(name)=}!"
-            )
         self._parameters_names.append(name)
 
     def fit(self, **kwargs) -> dict:
