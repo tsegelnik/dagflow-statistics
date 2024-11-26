@@ -98,10 +98,6 @@ def test_IMinuitMinimizer(mu, sigma, mode, testname):
         pdffit >> shiftFit
         modelfit = shiftFit.outputs[0]
 
-        # TODO: update pathsd set
-        MuFit._output.node.labels.paths.append("fit.mu")
-        SigmaFit._output.node.labels.paths.append("fit.sigma")
-
         # eval errors
         cnp = CNPStat("CNP stat")
         (shiftMC, modelfit) >> cnp
@@ -119,7 +115,7 @@ def test_IMinuitMinimizer(mu, sigma, mode, testname):
     parmu = Parameter(parent=None, value_output=MuFit.outputs[0])
     parsigma = Parameter(parent=None, value_output=SigmaFit.outputs[0])
     minimizer = IMinuitMinimizer(
-        statistic=chi.outputs[0], parameters=[parmu, parsigma], verbose=_verbose
+        statistic=chi.outputs[0], parameters={"mu": parmu, "sigma": parsigma}, verbose=_verbose
     )
     res = minimizer.fit()
 

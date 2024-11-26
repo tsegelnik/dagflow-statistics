@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 from dagflow.core.exception import InitializationError
-from dagflow.tools.logger import Logger, get_logger
 from dagflow.core.output import Output
 from dagflow.parameters import Parameter
+from dagflow.tools.logger import Logger, get_logger
 
 from .fitresult import FitResult
 from .Minimizable import Minimizable
@@ -31,6 +30,7 @@ class MinimizerBase:
         "_minimizable",
         "_minimizer",
         "_parameters",
+        "_parameters_names",
         "_result",
         "_statistic",
         "_verbose",
@@ -42,6 +42,7 @@ class MinimizerBase:
     _label: str
     _minimizable: Minimizable | None
     _parameters: list[Parameter]
+    _parameters_names: list[str]
     _result: dict
     _minimizer: Any
     _verbose: bool
@@ -52,7 +53,7 @@ class MinimizerBase:
     def __init__(
         self,
         statistic: Output,
-        parameters: Sequence[Parameter],
+        parameters: dict[str, Parameter],
         name: str,
         label: str,
         verbose: bool = False,
@@ -66,20 +67,24 @@ class MinimizerBase:
         self._initial_parameters = {}
 
         self._parameters = []  # pyright: ignore
+        self._parameters_names = []  # pyright: ignore
         if parameters:
-            if not isinstance(parameters, Sequence):
+            if not isinstance(parameters, dict):
                 raise InitializationError(
-                    f"'parameters' must be a sequence of Parameter, but given {parameters=},"
+                    f"'parameters' must be a dict of (str, Parameter), but given {parameters=},"
                     f" {type(parameters)=}!"
                 )
-            for par in parameters:
-                self.append_par(par)
-                self.copy_initial_values(par)
+            for parameter_name, parameter in parameters.items():
+                self.append_par(parameter)
+                self.copy_initial_values(parameter)
+                self.append_par_name(parameter_name)
 
         if isinstance(logger, Logger):
             self._logger = logger
         elif logger is not None:
-            raise InitializationError(f"Cannot initialize a Minimizable class with logger={logger}")
+            raise InitializationError(
+                f"Cannot initialize a Minimizable class with logger={logger}"
+            )
         else:
             self._logger = get_logger()
 
@@ -113,9 +118,9 @@ class MinimizerBase:
     def parameters(self) -> list[Parameter]:
         return self._parameters
 
-    @parameters.setter
-    def parameters(self, parameters) -> None:
-        self.parameters = parameters
+    @property
+    def parameters_names(self) -> list[str]:
+        return self._parameters_names
 
     @property
     def result(self) -> dict:
@@ -130,8 +135,17 @@ class MinimizerBase:
 
     def append_par(self, par: Parameter) -> None:
         if not isinstance(par, Parameter):
-            raise RuntimeError(f"'par' must be a Parameter, but given {par=}, {type(par)=}!")
+            raise RuntimeError(
+                f"'par' must be a Parameter, but given {par=}, {type(par)=}!"
+            )
         self._parameters.append(par)
+
+    def append_par_name(self, name: str) -> None:
+        if not isinstance(name, str):
+            raise RuntimeError(
+                f"'name' must be a str, but given {name=}, {type(name)=}!"
+            )
+        self._parameters_names.append(name)
 
     def fit(self, **kwargs) -> dict:
         if len(self.parameters) == 0:
@@ -160,19 +174,23 @@ class MinimizerBase:
         raise NotImplementedError("The method must be overriden!")
 
     def patchresult(self) -> None:
-        names = [par.output.node.labels.path for par in self.parameters]
+        names = self.parameters_names
         result = self._result
         result["npars"] = len(self.parameters)
         result["names"] = names
         result["xdict"] = dict(zip(names, (float(x) for x in self.result["x"])))
         if self.result["errors"] is not None:
-            result["errorsdict"] = dict(zip(names, (float(e) for e in self.result["errors"])))
+            result["errorsdict"] = dict(
+                zip(names, (float(e) for e in self.result["errors"]))
+            )
         else:
             result["errorsdict"] = {}
 
     def init_minimizable(self) -> Minimizable:
         if self._minimizable is None:
-            self._minimizable = Minimizable(self.statistic, verbose=self._verbose, logger=self._logger)
+            self._minimizable = Minimizable(
+                self.statistic, verbose=self._verbose, logger=self._logger
+            )
             for par in self.parameters:
                 self._minimizable.append_par(par)
         return self._minimizable
