@@ -10,7 +10,7 @@ from dagflow.core.graph import Graph
 from dagflow.core.input import Input
 from dagflow.lib.abstract import OneToOneNode
 from dagflow.lib.common import Array
-from dagflow.parameters import Parameter
+from dagflow.parameters import Parameters
 from dagflow.plot.graphviz import savegraph
 from dagflow.plot.plot import plot_array_1d
 
@@ -56,16 +56,17 @@ class Shift(OneToOneNode):
             out[:] = self._shift + inp[:]
 
 
+@mark.parametrize("corr", (False, True))
 @mark.parametrize("mu", (-1.531654, 2.097123))
 @mark.parametrize("sigma", (0.567543, 1.503321))
 @mark.parametrize("mode", ("asimov", "normal-stats"))
-def test_IMinuitMinimizer(mu, sigma, mode, testname):
+def test_IMinuitMinimizer(corr, mu, sigma, mode, testname):
     size = 201
     x = linspace(-10, 10, size)
 
     # start values of the fitting
-    mufit = mu / 2
-    sigmafit = sigma * 1.5
+    mu_fit = mu / 2
+    sigma_fit = sigma * 1.5
     with Graph(close_on_exit=True) as graph:
         # setting of true parameters
         Mu0 = Array("mu 0", [mu])
@@ -88,34 +89,42 @@ def test_IMinuitMinimizer(mu, sigma, mode, testname):
         mc >> shiftMC
 
         # build a model to fit exp data
-        MuFit = Array("mu fit", [mufit])
-        SigmaFit = Array("sigma fit", [sigmafit])
-        pdffit = Model("normal pdf for the Model")
-        X >> pdffit
-        MuFit >> pdffit("mu")
-        SigmaFit >> pdffit("sigma")
+        pars = Parameters.from_numbers(
+            [mu_fit, sigma_fit],
+            names=["mu fit", "sigma fit"],
+            sigma=[1, 1],
+            correlation=[[1, -0.95], [-0.95, 1]] if corr else None,
+        )
+        MuFit, SigmaFit = pars.outputs()
+        # MuFit = Array("mu fit", [mufit])
+        # SigmaFit = Array("sigma fit", [sigmafit])
+        pdf_fit = Model("normal pdf for the Model")
+        X >> pdf_fit
+        MuFit >> pdf_fit("mu")
+        SigmaFit >> pdf_fit("sigma")
         shiftFit = Shift("Model")
-        pdffit >> shiftFit
-        modelfit = shiftFit.outputs[0]
+        pdf_fit >> shiftFit
+        model_fit = shiftFit.outputs[0]
 
         # eval errors
         cnp = CNPStat("CNP stat")
-        (shiftMC, modelfit) >> cnp
+        (shiftMC, model_fit) >> cnp
 
         # eval Chi2
         chi = Chi2("Chi2")
         shiftMC >> chi("data")
-        modelfit >> chi("theory")
+        model_fit >> chi("theory")
         cnp.outputs[0] >> chi("errors")
 
     # check if the MC data is valid: negative events -> wrong model
     assert min(shiftMC.outputs[0].data) > 0
 
     # perform a minimization
-    parmu = Parameter(parent=None, value_output=MuFit.outputs[0])
-    parsigma = Parameter(parent=None, value_output=SigmaFit.outputs[0])
+    par_mu, par_sigma = pars.parameters
     minimizer = IMinuitMinimizer(
-        statistic=chi.outputs[0], parameters={"mu": parmu, "sigma": parsigma}, verbose=_verbose
+        statistic=chi.outputs[0],
+        parameters={"mu": par_mu, "sigma": par_sigma},
+        verbose=_verbose,
     )
     res = minimizer.fit()
 
@@ -151,7 +160,7 @@ def test_IMinuitMinimizer(mu, sigma, mode, testname):
 
     # save plot and graph
     draw_params(res["x"], mu, sigma, minimizer, f"output/{testname}-params.png")
-    draw_fit(x, shiftMC, model, modelfit, mode, f"output/{testname}-plot.png")
+    draw_fit(x, shiftMC, model, model_fit, mode, f"output/{testname}-plot.png")
     savegraph(graph, f"output/{testname}.png")
 
 
