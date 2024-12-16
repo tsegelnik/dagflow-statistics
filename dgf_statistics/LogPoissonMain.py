@@ -75,7 +75,7 @@ class LogPoissonMain(Node):
         self._poisson = self._add_output("poisson")  # output: 0
 
     def _function(self):
-        data = self._poisson.data
+        data = self._poisson._data
         data[0] = 0.0
         i = 0
         while i < self.inputs.len_pos():

@@ -96,13 +96,13 @@ class LogPoissonConst(Node):
         return self._mode
 
     def _fcn_poisson_ratio(self):
-        data = self._const.data
+        data = self._const._data
         data[0] = 0.0
         for _input in self.inputs.iter_data():
             _const_poisson_ratio_add(_input.ravel(), data)
 
     def _fcn_poisson(self):
-        data = self._const.data
+        data = self._const._data
         data[0] = 0.0
         for _input in self.inputs.iter_data():
             _const_poisson_add(_input.ravel(), data)

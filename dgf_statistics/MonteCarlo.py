@@ -203,9 +203,7 @@ class MonteCarlo(BlockToOneNode):
         self.fd.frozen = True
 
     def reset(self) -> None:
-        self.fd.being_evaluated = True
         self._fcn_asimov()
-        self.fd.being_evaluated = False
         # We need to set the flag frozen manually
         self.fd.frozen = True
 
@@ -271,14 +269,14 @@ class MonteCarloShape(MonteCarlo):
         return ()
 
     def _fcn_asimov(self) -> None:
-        for _output in self.outputs.iter_data():
-            _output[:] = 0.0
+        for outdata in self.outputs.iter_data_unsafe():
+            outdata[:] = 0.0
         # We need to set the flag frozen manually
         self.fd.frozen = True
 
     def _fcn_normal_unit(self) -> None:
-        for _output in self.outputs.iter_data():
-            _fill_normal(_output, self._generator)
+        for outdata in self.outputs.iter_data_unsafe():
+            _fill_normal(outdata, self._generator)
         # We need to set the flag frozen manually
         self.fd.frozen = True
 
@@ -342,20 +340,20 @@ class MonteCarloLoc(MonteCarlo):
         return ("data",)
 
     def _fcn_asimov(self) -> None:
-        for _input, _output in zip(self.inputs.iter_data(), self.outputs.iter_data()):
-            _output[:] = _input[:]
+        for indata, outdata in zip(self.inputs.iter_data(), self.outputs.iter_data_unsafe()):
+            outdata[:] = indata[:]
         # We need to set the flag frozen manually
         self.fd.frozen = True
 
     def _fcn_normal_stats(self) -> None:
-        for _input, _output in zip(self.inputs.iter_data(), self.outputs.iter_data()):
-            _normal_stats(_input, _output, self._generator)
+        for indata, outdata in zip(self.inputs.iter_data(), self.outputs.iter_data_unsafe()):
+            _normal_stats(indata, outdata, self._generator)
         # We need to set the flag frozen manually
         self.fd.frozen = True
 
     def _fcn_poisson(self) -> None:
-        for _input, _output in zip(self.inputs.iter_data(), self.outputs.iter_data()):
-            _poisson(_input, _output, self._generator)
+        for indata, outdata in zip(self.inputs.iter_data(), self.outputs.iter_data_unsafe()):
+            _poisson(indata, outdata, self._generator)
         # We need to set the flag frozen manually
         self.fd.frozen = True
 
@@ -430,7 +428,7 @@ class MonteCarloLocScale(MonteCarlo):
     def _fcn_asimov(self) -> None:
         i = 0
         while i < self.inputs.len_pos():
-            self.outputs[i // 2].data[:] = self.inputs[i].data[:]
+            self.outputs[i // 2]._data[:] = self.inputs[i].data[:]
             i += 2
         # We need to set the flag frozen manually
         self.fd.frozen = True
@@ -441,7 +439,7 @@ class MonteCarloLocScale(MonteCarlo):
             _covariance_L(
                 self.inputs[i].data,
                 self.inputs[i + 1].data,
-                self.outputs[i // 2].data,
+                self.outputs[i // 2]._data,
                 self._generator,
             )
             i += 2
@@ -454,7 +452,7 @@ class MonteCarloLocScale(MonteCarlo):
             _normal(
                 self.inputs[i].data,
                 self.inputs[i + 1].data,
-                self.outputs[i // 2].data,
+                self.outputs[i // 2]._data,
                 self._generator,
             )
             i += 2

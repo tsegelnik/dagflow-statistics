@@ -69,7 +69,7 @@ class CNPStat(BlockToOneNode):
             _cnp(
                 self.inputs[i].data,
                 self.inputs[i + 1].data,
-                self.outputs[i // 2].data,
+                self.outputs[i // 2]._data,
             )
             i += 2
 

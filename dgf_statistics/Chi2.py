@@ -94,7 +94,7 @@ class Chi2(ManyToOneNode):
         return self._matrix_is_lower
 
     def _fcn_1d(self) -> None:
-        ret = self._result.data
+        ret = self._result._data
         ret[0] = 0.0
 
         for theory, data, errors in zip(self._theory_tuple, self._data_tuple, self._errors_tuple):
@@ -110,7 +110,7 @@ class Chi2(ManyToOneNode):
             square(buffer, out=buffer)
             ret += buffer.sum()
 
-        self._result.data[0] = ret
+        self._result._data[0] = ret
 
     def _typefunc(self) -> None:
         """A output takes this function to determine the dtype and shape"""

@@ -148,7 +148,7 @@ class MinimizerBase:
 
     def evalstatistic(self) -> dict:
         with FitResult() as fr:
-            fun = self._statistic.data
+            fun = self._statistic._data
 
         fr.set(
             x=[],

@@ -37,8 +37,8 @@ class Model(OneToOneNode):
     def _function(self):
         mu = self._mu.data[0]
         sigma = self._sigma.data[0]
-        for inp, out in zip(self.inputs.iter_data(), self.outputs.iter_data()):
-            out[:] = _NevScale * norm.pdf(inp[:], loc=mu, scale=sigma)
+        for indata, outdata in zip(self.inputs.iter_data(), self.outputs.iter_data_unsafe()):
+            outdata[:] = _NevScale * norm.pdf(indata[:], loc=mu, scale=sigma)
 
 
 class Shift(OneToOneNode):
@@ -52,8 +52,8 @@ class Shift(OneToOneNode):
         self._shift = shift
 
     def _function(self):
-        for inp, out in zip(self.inputs.iter_data(), self.outputs.iter_data()):
-            out[:] = self._shift + inp[:]
+        for indata, outdata in zip(self.inputs.iter_data(), self.outputs.iter_data_unsafe()):
+            outdata[:] = self._shift + indata[:]
 
 
 @mark.parametrize("corr", (False, True))
