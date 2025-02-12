@@ -6,7 +6,6 @@ from pytest import mark
 from dagflow.core.graph import Graph
 from dagflow.lib.common import Array
 from dagflow.plot.graphviz import savegraph
-
 from dgf_statistics.Chi2 import Chi2
 from dgf_statistics.CNPStat import CNPStat
 
@@ -103,9 +102,7 @@ def test_Chi2CNPStat_v01(debug_graph, testname):
         data = Array("data", dataa, mark="Data")
         theory = Array("theory", theorya, mark="Theory")
         cnp = CNPStat(name="cnp", label="CNP stat. uncertainty")
-        print(cnp.outputs)
         (data, theory) >> cnp
-        print(cnp.outputs)
         chi2 = Chi2(name="chi2", label="chi2")
         data >> chi2("data")
         theory >> chi2("theory")
