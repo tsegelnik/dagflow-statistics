@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Literal
 from numba import njit
 
 from dagflow.core.exception import InitializationError
-from dagflow.core.input_handler import MissingInputAddOne
+from dagflow.core.input_strategy import AddNewInputAddAndKeepSingleOutput
 from dagflow.core.node import Node
 
 if TYPE_CHECKING:
@@ -67,8 +67,7 @@ class LogPoissonConst(Node):
     _mode: ModeType
 
     def __init__(self, name, mode: ModeType = "poisson_ratio", *args, **kwargs):
-        kwargs.setdefault("missing_input_handler", MissingInputAddOne())
-        super().__init__(name, *args, **kwargs)
+        super().__init__(name, *args, **kwargs, input_strategy=AddNewInputAddAndKeepSingleOutput())
         # TODO: set labels
         self.labels.setdefaults(
             {
@@ -88,26 +87,26 @@ class LogPoissonConst(Node):
         self._data = self._add_input("data")  # input: 0
         self._const = self._add_output("const")  # output: 0
         self._functions_dict.update(
-            {"poisson_ratio": self._fcn_poisson_ratio, "poisson": self._fcn_poisson}
+            {"poisson_ratio": self._function_poisson_ratio, "poisson": self._function_poisson}
         )
 
     @property
     def mode(self) -> ModeType:
         return self._mode
 
-    def _fcn_poisson_ratio(self):
+    def _function_poisson_ratio(self):
         data = self._const._data
         data[0] = 0.0
         for _input in self.inputs.iter_data():
             _const_poisson_ratio_add(_input.ravel(), data)
 
-    def _fcn_poisson(self):
+    def _function_poisson(self):
         data = self._const._data
         data[0] = 0.0
         for _input in self.inputs.iter_data():
             _const_poisson_add(_input.ravel(), data)
 
-    def _typefunc(self) -> None:
+    def _type_function(self) -> None:
         """A output takes this function to determine the dtype and shape"""
         self._const.dd.shape = (1,)
         self._const.dd.dtype = self._data.dd.dtype
