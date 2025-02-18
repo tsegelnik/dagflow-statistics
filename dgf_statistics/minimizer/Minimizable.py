@@ -15,13 +15,13 @@ if TYPE_CHECKING:
 
 
 class Minimizable:
-    __slots__ = ("_statistic", "_parameters", "_verbose", "_functions", "_fcn", "_ncall", "_logger")
+    __slots__ = ("_statistic", "_parameters", "_verbose", "_functions", "_function", "_ncall", "_logger")
 
     _statistic: Output
     _parameters: list[Parameter]
     _verbose: bool
     _functions: dict
-    _fcn: Callable
+    _function: Callable
     _ncall: int
     _logger: Logger
 
@@ -56,8 +56,8 @@ class Minimizable:
             self._logger = get_logger()
 
         self._verbose = verbose
-        self._functions = {"verbose": self._fcn_verbose, "default": self._fcn_default}
-        self._fcn = self._functions["verbose" if verbose else "default"]
+        self._functions = {"verbose": self._function_verbose, "default": self._function_default}
+        self._function = self._functions["verbose" if verbose else "default"]
         self._ncall = 0
 
     def append_par(self, par: Parameter) -> None:
@@ -65,13 +65,13 @@ class Minimizable:
             raise RuntimeError(f"par must be a Parameter, but given {par=}, {type(par)=}!")
         self._parameters.append(par)
 
-    def _fcn_default(self, values: "NDArray") -> float:
+    def _function_default(self, values: "NDArray") -> float:
         for param, val in zip(self._parameters, values):
             param.value = val
         self._ncall += 1
         return self._statistic.data[0]
 
-    def _fcn_verbose(self, values: "NDArray") -> float:
+    def _function_verbose(self, values: "NDArray") -> float:
         for param, val in zip(self._parameters, values):
             param.value = val
             self._logger.info(f"Parameter(name='{param.output.node.name}', value={val})")
@@ -81,4 +81,4 @@ class Minimizable:
         return ret
 
     def __call__(self, values: "NDArray") -> float:
-        return self._fcn(values)
+        return self._function(values)

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from numba import njit
 
-from dagflow.core.input_handler import MissingInputAddOne
+from dagflow.core.input_strategy import AddNewInputAddAndKeepSingleOutput
 from dagflow.core.node import Node
 from dagflow.core.type_functions import check_inputs_number_is_divisible_by_N, check_inputs_have_same_shape
 
@@ -57,8 +57,7 @@ class LogPoissonMain(Node):
     _poisson: Output
 
     def __init__(self, name, *args, **kwargs):
-        kwargs.setdefault("missing_input_handler", MissingInputAddOne())
-        super().__init__(name, *args, **kwargs)
+        super().__init__(name, *args, **kwargs, input_strategy=AddNewInputAddAndKeepSingleOutput())
         # TODO: set labels
         self.labels.setdefaults(
             {
@@ -87,7 +86,7 @@ class LogPoissonMain(Node):
             i += 2
         data[0] = 2.0 * (data[0] + self._const.data[0])  # fmt:skip
 
-    def _typefunc(self) -> None:
+    def _type_function(self) -> None:
         """A output takes this function to determine the dtype and shape"""
         check_inputs_number_is_divisible_by_N(self, 2)
         i = 0

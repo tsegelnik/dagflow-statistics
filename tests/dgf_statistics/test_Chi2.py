@@ -6,7 +6,6 @@ from pytest import mark
 from dagflow.core.graph import Graph
 from dagflow.lib.common import Array
 from dagflow.plot.graphviz import savegraph
-
 from dgf_statistics.Chi2 import Chi2
 from dgf_statistics.CNPStat import CNPStat
 
@@ -25,8 +24,6 @@ def test_Chi2_01(debug_graph, testname):
         stat = Array("staterr", statArr, mark="Stat errors")
         chi2 = Chi2("chi2")
         (data, theory, stat) >> chi2
-
-        chi2.print()
 
     res = chi2.outputs["result"].data[0]
     truth1 = (((dataArr - theoryArr) / statArr) ** 2).sum()
@@ -110,7 +107,6 @@ def test_Chi2CNPStat_v01(debug_graph, testname):
         data >> chi2("data")
         theory >> chi2("theory")
         cnp.outputs[0] >> chi2("errors")
-
     res = chi2.outputs["result"].data[0]
     res_expected = ((1.0 / dataa + 2.0 / theorya) * (theorya - dataa) ** 2).sum() / 3.0
     assert allclose(res, res_expected, atol=finfo("d").resolution)

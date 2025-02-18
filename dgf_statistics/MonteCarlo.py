@@ -186,14 +186,14 @@ class MonteCarlo(BlockToOneNode):
     ):
         self._generator = self._create_generator() if generator is None else generator
         super().__init__(name, *args, **kwargs)
-        self._functions_dict.update({"asimov": self._fcn_asimov})
+        self._functions_dict.update({"asimov": self._function_asimov})
 
     @property
     def mode(self) -> str:
         return self._mode
 
     @abstractmethod
-    def _fcn_asimov(self) -> None:
+    def _function_asimov(self) -> None:
         raise NotImplementedError()
 
     def next_sample(self) -> None:
@@ -203,7 +203,7 @@ class MonteCarlo(BlockToOneNode):
         self.fd.frozen = True
 
     def reset(self) -> None:
-        self._fcn_asimov()
+        self._function_asimov()
         # We need to set the flag frozen manually
         self.fd.frozen = True
 
@@ -260,7 +260,7 @@ class MonteCarloShape(MonteCarlo):
         )
         self._functions_dict.update(
             {
-                "normal-unit": self._fcn_normal_unit,
+                "normal-unit": self._function_normal_unit,
             }
         )
 
@@ -268,19 +268,19 @@ class MonteCarloShape(MonteCarlo):
     def _input_names() -> tuple:
         return ()
 
-    def _fcn_asimov(self) -> None:
+    def _function_asimov(self) -> None:
         for outdata in self.outputs.iter_data_unsafe():
             outdata[:] = 0.0
         # We need to set the flag frozen manually
         self.fd.frozen = True
 
-    def _fcn_normal_unit(self) -> None:
+    def _function_normal_unit(self) -> None:
         for outdata in self.outputs.iter_data_unsafe():
             _fill_normal(outdata, self._generator)
         # We need to set the flag frozen manually
         self.fd.frozen = True
 
-    def _typefunc(self) -> None:
+    def _type_function(self) -> None:
         """A output takes this function to determine the dtype and shape"""
         self.function = self._functions_dict[self.mode]
 
@@ -329,9 +329,9 @@ class MonteCarloLoc(MonteCarlo):
         )
         self._functions_dict.update(
             {
-                "asimov": self._fcn_asimov,
-                "normal-stats": self._fcn_normal_stats,
-                "poisson": self._fcn_poisson,
+                "asimov": self._function_asimov,
+                "normal-stats": self._function_normal_stats,
+                "poisson": self._function_poisson,
             }
         )
 
@@ -339,25 +339,25 @@ class MonteCarloLoc(MonteCarlo):
     def _input_names() -> tuple[str, ...]:
         return ("data",)
 
-    def _fcn_asimov(self) -> None:
+    def _function_asimov(self) -> None:
         for indata, outdata in zip(self.inputs.iter_data(), self.outputs.iter_data_unsafe()):
             outdata[:] = indata[:]
         # We need to set the flag frozen manually
         self.fd.frozen = True
 
-    def _fcn_normal_stats(self) -> None:
+    def _function_normal_stats(self) -> None:
         for indata, outdata in zip(self.inputs.iter_data(), self.outputs.iter_data_unsafe()):
             _normal_stats(indata, outdata, self._generator)
         # We need to set the flag frozen manually
         self.fd.frozen = True
 
-    def _fcn_poisson(self) -> None:
+    def _function_poisson(self) -> None:
         for indata, outdata in zip(self.inputs.iter_data(), self.outputs.iter_data_unsafe()):
             _poisson(indata, outdata, self._generator)
         # We need to set the flag frozen manually
         self.fd.frozen = True
 
-    def _typefunc(self) -> None:
+    def _type_function(self) -> None:
         """A output takes this function to determine the dtype and shape"""
         n = self.inputs.len_pos()
         check_number_of_outputs(self, n)
@@ -416,8 +416,8 @@ class MonteCarloLocScale(MonteCarlo):
             )
         self._functions_dict.update(
             {
-                "normal": self._fcn_normal,
-                "covariance": self._fcn_covariance_L,
+                "normal": self._function_normal,
+                "covariance": self._function_covariance_L,
             }
         )
 
@@ -425,7 +425,7 @@ class MonteCarloLocScale(MonteCarlo):
     def _input_names() -> tuple[str, ...]:
         return "data", "errors"
 
-    def _fcn_asimov(self) -> None:
+    def _function_asimov(self) -> None:
         i = 0
         while i < self.inputs.len_pos():
             self.outputs[i // 2]._data[:] = self.inputs[i].data[:]
@@ -433,7 +433,7 @@ class MonteCarloLocScale(MonteCarlo):
         # We need to set the flag frozen manually
         self.fd.frozen = True
 
-    def _fcn_covariance_L(self) -> None:
+    def _function_covariance_L(self) -> None:
         i = 0
         while i < self.inputs.len_pos():
             _covariance_L(
@@ -446,7 +446,7 @@ class MonteCarloLocScale(MonteCarlo):
         # We need to set the flag frozen manually
         self.fd.frozen = True
 
-    def _fcn_normal(self) -> None:
+    def _function_normal(self) -> None:
         i = 0
         while i < self.inputs.len_pos():
             _normal(
@@ -459,7 +459,7 @@ class MonteCarloLocScale(MonteCarlo):
         # We need to set the flag frozen manually
         self.fd.frozen = True
 
-    def _typefunc(self) -> None:
+    def _type_function(self) -> None:
         """A output takes this function to determine the dtype and shape"""
         check_inputs_number_is_divisible_by_N(self, 2)
         n = self.inputs.len_pos()

@@ -83,7 +83,7 @@ class Chi2(ManyToOneNode):
         self._theory_tuple = ()  # input: 1
         self._errors_tuple = ()  # input: 2
         self._result = self.outputs[0]
-        self._functions_dict.update({"1d": self._fcn_1d, "2d": self._fcn_2d})
+        self._functions_dict.update({"1d": self._function_1d, "2d": self._function_2d})
 
     @staticmethod
     def _input_names() -> tuple[str, ...]:
@@ -93,14 +93,14 @@ class Chi2(ManyToOneNode):
     def matrix_is_lower(self) -> bool:
         return self._matrix_is_lower
 
-    def _fcn_1d(self) -> None:
+    def _function_1d(self) -> None:
         ret = self._result._data
         ret[0] = 0.0
 
         for theory, data, errors in zip(self._theory_tuple, self._data_tuple, self._errors_tuple):
             _chi2_1d_add(theory.data, data.data, errors.data, ret)
 
-    def _fcn_2d(self) -> None:
+    def _function_2d(self) -> None:
         buffer = self._buffer
         ret = 0.0
         for theory, data, errors in zip(self._theory_tuple, self._data_tuple, self._errors_tuple):
@@ -112,7 +112,7 @@ class Chi2(ManyToOneNode):
 
         self._result._data[0] = ret
 
-    def _typefunc(self) -> None:
+    def _type_function(self) -> None:
         """A output takes this function to determine the dtype and shape"""
         check_inputs_number_is_divisible_by_N(self, 3)
         self._data_tuple = tuple(self.inputs[::3])  # input: 0
