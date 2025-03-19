@@ -57,10 +57,10 @@ class Shift(OneToOneNode):
 
 
 @mark.parametrize("corr", (False, True))
-@mark.parametrize("mu", (-1.531654, 2.097123))
+@mark.parametrize("mu,limit_mu", ((-1.531654, False), (2.097123, True)))
 @mark.parametrize("sigma", (0.567543, 1.503321))
 @mark.parametrize("mode", ("asimov", "normal-stats"))
-def test_IMinuitMinimizer(corr, mu, sigma, mode, testname):
+def test_IMinuitMinimizer(corr, mu, sigma, limit_mu, mode, testname):
     size = 201
     x = linspace(-10, 10, size)
 
@@ -119,11 +119,16 @@ def test_IMinuitMinimizer(corr, mu, sigma, mode, testname):
     # check if the MC data is valid: negative events -> wrong model
     assert min(shiftMC.outputs[0].data) > 0
 
+    limits = {}
+    if limit_mu:
+        limits = {"mu": (1, 3)}
+
     # perform a minimization
     par_mu, par_sigma = pars.parameters
     minimizer = IMinuitMinimizer(
         statistic=chi.outputs[0],
         parameters={"mu": par_mu, "sigma": par_sigma},
+        limits=limits,
         verbose=_verbose,
     )
     res = minimizer.fit()
