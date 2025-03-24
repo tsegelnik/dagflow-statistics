@@ -58,9 +58,10 @@ class MinimizerBase:
         parameters: dict[str, Parameter],
         name: str,
         label: str,
-        limits: dict[str, tuple[float | None, float | None]] = {},
         verbose: bool = False,
         logger: Logger | None = None,
+        *,
+        limits: dict[str, tuple[float | None, float | None]] = {},
     ):
         if not isinstance(statistic, Output):
             raise InitializationError(

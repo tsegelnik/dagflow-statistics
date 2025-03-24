@@ -32,13 +32,14 @@ class IMinuitMinimizer(MinimizerBase):
         self,
         statistic: Output,
         parameters: dict[str, Parameter],
-        limits: dict[str, tuple[float | None, float | None]] = {},
         name: str = "iminuit",
         label: str = "iminuit",
         errordef: float = 1.0,  # 1.0: LEAST_SQUARES, 0.5: LIKELIHOOD
+        *,
+        limits: dict[str, tuple[float | None, float | None]] = {},
         **kwargs,
     ) -> None:
-        super().__init__(statistic, parameters, name, label, limits, **kwargs)
+        super().__init__(statistic, parameters, name, label, limits=limits, **kwargs)
         self._errordef = errordef
 
     def _child_fit(self, **kwargs) -> dict:
