@@ -35,9 +35,11 @@ class IMinuitMinimizer(MinimizerBase):
         name: str = "iminuit",
         label: str = "iminuit",
         errordef: float = 1.0,  # 1.0: LEAST_SQUARES, 0.5: LIKELIHOOD
+        *,
+        limits: dict[str, tuple[float | None, float | None]] = {},
         **kwargs,
     ) -> None:
-        super().__init__(statistic, parameters, name, label, **kwargs)
+        super().__init__(statistic, parameters, name, label, limits=limits, **kwargs)
         self._errordef = errordef
 
     def _child_fit(self, **kwargs) -> dict:
@@ -107,6 +109,14 @@ class IMinuitMinimizer(MinimizerBase):
         self._minimizer = minimizer = Minuit(fcn, *startvalues, name=names)
         minimizer.throw_nan = True
         minimizer.errordef = self._errordef
+
+        limits = []
+        for name in names:
+            if name in self._limits.keys():
+                limits.append(self._limits[name])
+            else:
+                limits.append((None, None))
+        self._minimizer.limits = limits
 
         return minimizer
 

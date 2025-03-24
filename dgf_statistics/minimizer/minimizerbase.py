@@ -33,6 +33,7 @@ class MinimizerBase:
         "_parameters_names",
         "_result",
         "_statistic",
+        "_limits",
         "_verbose",
         "_logger",
         "_initial_parameters",
@@ -41,12 +42,13 @@ class MinimizerBase:
     _name: str
     _label: str
     _minimizable: Minimizable | None
-    _parameters: list[Parameter]
+    _parameters: dict[str, Parameter]
     _parameters_names: list[str]
     _result: dict
     _minimizer: Any
     _verbose: bool
     _statistic: Output
+    _limits: dict[str, tuple[float | None, float | None]]
     _logger: Logger
     _initial_parameters: dict[Parameter, float] | None
 
@@ -58,6 +60,8 @@ class MinimizerBase:
         label: str,
         verbose: bool = False,
         logger: Logger | None = None,
+        *,
+        limits: dict[str, tuple[float | None, float | None]] = {},
     ):
         if not isinstance(statistic, Output):
             raise InitializationError(
@@ -86,6 +90,8 @@ class MinimizerBase:
             )
         else:
             self._logger = get_logger()
+
+        self._limits = limits
 
         self._name = name
         self._label = label
