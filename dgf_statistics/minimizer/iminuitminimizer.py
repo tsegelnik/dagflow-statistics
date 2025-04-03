@@ -69,23 +69,22 @@ class IMinuitMinimizer(MinimizerBase):
                 # but we build a dict using slots with complete information
                 fmin = result.fmin
                 message = {key[1:]: getattr(fmin, key) for key in fmin.__slots__}
-        if fmin:
-            fr.set(
-                x=array(result.values),
-                errors=array(result.errors),
-                fun=float(result.fval) if result.fval is not None else None,
-                success=result.valid,
-                summary=message,
-                minimizer=self._label,
-                nfev=result.nfcn,
-                errorsdef=self._errordef,
-                covariance=(
-                    array(result.covariance) if result.covariance is not None else None
-                ),
-            )
-            self._result = fr.result
-
+        fr.set(
+            x=array(result.values),
+            errors=array(result.errors),
+            fun=float(result.fval) if result.fval is not None else None,
+            success=result.valid,
+            summary=message,
+            minimizer=self._label,
+            nfev=result.nfcn,
+            errorsdef=self._errordef,
+            covariance=(
+                array(result.covariance) if result.covariance is not None else None
+            ),
+        )
+        self._result = fr.result
         self.patchresult()
+
         return self.result
 
     def init_minimizer(self) -> Minuit:

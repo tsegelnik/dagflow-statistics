@@ -23,7 +23,7 @@ class LogPoisson(MetaNode):
 
     def __init__(
         self,
-        mode: ModeType = "poisson",
+        mode: ModeType = "poisson_ratio",
         *,
         bare: bool = False,
         labels: Mapping = {},
