@@ -3,4 +3,5 @@ from .CNPStat import CNPStat
 from .LogPoisson import LogPoisson
 from .LogPoissonConst import LogPoissonConst
 from .LogPoissonMain import LogPoissonMain
+from .LogPoissonRatio import LogPoissonRatio
 from .MonteCarlo import MonteCarlo
