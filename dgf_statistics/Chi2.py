@@ -2,31 +2,34 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from dagflow.core.exception import TypeFunctionError
-from dagflow.core.type_functions import (
-    check_dimension_of_inputs,
-    check_inputs_are_square_matrices,
-    check_inputs_are_matrix_multipliable,
-    check_inputs_number_is_divisible_by_N,
-    check_inputs_have_same_shape,
-)
-from dagflow.lib.abstract import ManyToOneNode
 from numba import njit
 from numpy import empty, square, subtract
 from scipy.linalg import solve_triangular
 
+from dagflow.core.exception import TypeFunctionError
+from dagflow.core.type_functions import (
+    AllPositionals,
+    check_dimension_of_inputs,
+    check_inputs_are_matrix_multipliable,
+    check_inputs_are_square_matrices,
+    check_inputs_have_same_shape,
+    check_inputs_number_is_divisible_by_N,
+    evaluate_dtype_of_outputs,
+)
+from dagflow.lib.abstract import ManyToOneNode
+
 if TYPE_CHECKING:
-    from dagflow.core.node import Input, Output
-    from numpy import double
     from numpy.typing import NDArray
+
+    from dagflow.core.node import Input, Output
 
 
 @njit(cache=True)
 def _chi2_1d_add(
-    data: NDArray[double],
-    theory: NDArray[double],
-    errors: NDArray[double],
-    result: NDArray[double],
+    data: NDArray,
+    theory: NDArray,
+    errors: NDArray,
+    result: NDArray,
 ) -> None:
     res = 0.0
     for idata, itheory, ierror in zip(data, theory, errors):
@@ -36,8 +39,7 @@ def _chi2_1d_add(
 
 
 class Chi2(ManyToOneNode):
-    r"""
-    $\chi^{2}$ node
+    r"""$\chi^{2}$ node.
 
     inputs:
         `0` or `data`: data (1d),
@@ -55,15 +57,15 @@ class Chi2(ManyToOneNode):
         "_data_tuple",
         "_theory_tuple",
         "_errors_tuple",
-        "_result",
+        "_triplets_tuple",
         "_matrix_is_lower",
         "_buffer",
     )
 
-    _data_tuple: tuple[Input]
-    _theory_tuple: tuple[Input]
-    _errors_tuple: tuple[Input]
-    _result: Output
+    _data_tuple: tuple[NDArray, ...]
+    _theory_tuple: tuple[NDArray, ...]
+    _errors_tuple: tuple[NDArray, ...]
+    _triplets_tuple: tuple[tuple[NDArray, NDArray, NDArray], ...]
     _buffer: NDArray
     _matrix_is_lower: bool
 
@@ -82,7 +84,7 @@ class Chi2(ManyToOneNode):
         self._data_tuple = ()  # input: 0
         self._theory_tuple = ()  # input: 1
         self._errors_tuple = ()  # input: 2
-        self._result = self.outputs[0]
+        self._triplets_tuple = ()
         self._functions_dict.update({"1d": self._function_1d, "2d": self._function_2d})
 
     @staticmethod
@@ -94,30 +96,29 @@ class Chi2(ManyToOneNode):
         return self._matrix_is_lower
 
     def _function_1d(self) -> None:
-        ret = self._result._data
+        ret = self._output_data
         ret[0] = 0.0
 
-        for theory, data, errors in zip(self._theory_tuple, self._data_tuple, self._errors_tuple):
-            _chi2_1d_add(theory.data, data.data, errors.data, ret)
+        for data, theory, errors in self._triplets_tuple:
+            _chi2_1d_add(data, theory, errors, ret)
 
     def _function_2d(self) -> None:
         buffer = self._buffer
         ret = 0.0
-        for theory, data, errors in zip(self._theory_tuple, self._data_tuple, self._errors_tuple):
+        for data, theory, errors in self._triplets_tuple:
             # errors is triangular decomposition of covariance matrix (L)
-            subtract(theory.data, data.data, out=buffer)
-            solve_triangular(errors.data, buffer, lower=self.matrix_is_lower, overwrite_b=True)
+            subtract(data, theory, out=buffer)
+            solve_triangular(
+                errors, buffer, lower=self.matrix_is_lower, overwrite_b=True
+            )
             square(buffer, out=buffer)
             ret += buffer.sum()
 
-        self._result._data[0] = ret
+        self._output_data[0] = ret
 
     def _type_function(self) -> None:
-        """A output takes this function to determine the dtype and shape"""
+        """A output takes this function to determine the dtype and shape."""
         check_inputs_number_is_divisible_by_N(self, 3)
-        self._data_tuple = tuple(self.inputs[::3])  # input: 0
-        self._theory_tuple = tuple(self.inputs[1::3])  # input: 1
-        self._errors_tuple = tuple(self.inputs[2::3])  # input: 1
 
         check_dimension_of_inputs(self, slice(0, None, 3), 1)
         check_dimension_of_inputs(self, slice(1, None, 3), 1)
@@ -125,7 +126,7 @@ class Chi2(ManyToOneNode):
         check_inputs_have_same_shape(self, slice(0, None, 3))
         check_inputs_have_same_shape(self, slice(1, None, 3))
         check_inputs_have_same_shape(self, slice(2, None, 3))
-        errors = self._errors_tuple[0]
+        errors = self.inputs[2]
         dim = errors.dd.dim
         if dim == 2:
             check_inputs_are_square_matrices(self, "errors")
@@ -140,11 +141,24 @@ class Chi2(ManyToOneNode):
             )
         self.function = self._functions_dict[f"{dim}d"]
 
-        self._result.dd.shape = (1,)
-        self._result.dd.dtype = self._data_tuple[0].dd.dtype
+        result = self.outputs[0]
+        result.dd.shape = (1,)
+        evaluate_dtype_of_outputs(
+            self, AllPositionals, "result"
+        )  # eval dtype of result
 
     def _post_allocate(self) -> None:
+        super()._post_allocate()
+        self._data_tuple = tuple(self._input_data[::3])  # input: 0
+        self._theory_tuple = tuple(self._input_data[1::3])  # input: 1
+        self._errors_tuple = tuple(self._input_data[2::3])  # input: 2
+
+        self._triplets_tuple = tuple(
+            tuple(x)
+            for x in zip(self._data_tuple, self._theory_tuple, self._errors_tuple)
+        )
+
         # NOTE: buffer is needed only for 2d case
-        if self._errors_tuple[0].dd.dim == 2:
-            datadd = self._data_tuple[0].dd
-            self._buffer = empty(shape=datadd.shape, dtype=datadd.dtype)
+        if self._errors_tuple[0].ndim == 2:
+            theory = self._theory_tuple[0]
+            self._buffer = empty(shape=theory.shape, dtype=self._output_data.dtype)
