@@ -17,8 +17,8 @@ def test_LogPoissonRatio_01(debug_graph, testname):
     theoryArr = dataArr + offset
 
     with Graph(close_on_exit=True, debug=debug_graph) as graph:
-        data = Array("data", dataArr, mark="Data")
-        theory = Array("theory", theoryArr, mark="Theory")
+        data = Array("data", dataArr, mark="Data", mode="fill")
+        theory = Array("theory", theoryArr, mark="Theory", mode="fill")
         logPoisson = LogPoissonRatio("lr")
         (data, theory) >> logPoisson
 

@@ -87,6 +87,9 @@ class CNPStat(BlockToOneNode):
         return "data", "theory"
 
     def _cnp_uncertainty(self) -> None:
+        for callback in self._input_nodes_callbacks:
+            callback()
+
         i = 0
         for i, output_data in enumerate(self._output_data):
             _cnp_uncertainty(
@@ -96,6 +99,9 @@ class CNPStat(BlockToOneNode):
             )
 
     def _cnp_variance(self) -> None:
+        for callback in self._input_nodes_callbacks:
+            callback()
+
         i = 0
         for i, output_data in enumerate(self._output_data):
             _cnp_variance(

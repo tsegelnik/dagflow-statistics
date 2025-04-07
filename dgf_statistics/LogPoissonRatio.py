@@ -73,6 +73,9 @@ class LogPoissonRatio(ManyToOneNode):
         return "data", "theory"
 
     def _function(self) -> None:
+        for callback in self._input_nodes_callbacks:
+            callback()
+
         res = 0.0
         for data, theory in self._pairs_tuple:
             res += _log_poisson_ratio(data, theory)

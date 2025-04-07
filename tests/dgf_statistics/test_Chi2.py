@@ -19,9 +19,9 @@ def test_Chi2_01(debug_graph, testname):
     statArr = dataArr**0.5
 
     with Graph(close_on_exit=True, debug=debug_graph) as graph:
-        data = Array("data", dataArr, mark="Data")
-        theory = Array("theory", theoryArr, mark="Theory")
-        stat = Array("staterr", statArr, mark="Stat errors")
+        data = Array("data", dataArr, mark="Data", mode="fill")
+        theory = Array("theory", theoryArr, mark="Theory", mode="fill")
+        stat = Array("staterr", statArr, mark="Stat errors", mode="fill")
         chi2 = Chi2("chi2")
         (data, theory, stat) >> chi2
 
@@ -44,9 +44,9 @@ def test_Chi2_02(debug_graph, testname):
     Lmat = cholesky(covmat)
 
     with Graph(close_on_exit=True, debug=debug_graph) as graph:
-        data = Array("data", dataArr, mark="Data")
-        theory = Array("theory", theoryArr, mark="Theory")
-        L = Array("L", Lmat, mark="Stat errors (cholesky)")
+        data = Array("data", dataArr, mark="Data", mode="fill")
+        theory = Array("theory", theoryArr, mark="Theory", mode="fill")
+        L = Array("L", Lmat, mark="Stat errors (cholesky)", mode="fill")
         chi2 = Chi2("chi2")
         data >> chi2
         theory >> chi2
@@ -70,9 +70,9 @@ def test_Chi2_03(duplicate: bool, debug_graph, testname):
     Lmat = cholesky(covmat)
 
     with Graph(close_on_exit=True, debug=debug_graph) as graph:
-        data = Array("data", dataArr, mark="Data")
-        theory = Array("theory", theoryArr, mark="Theory")
-        L = Array("L", Lmat, mark="Stat errors (cholesky)")
+        data = Array("data", dataArr, mark="Data", mode="fill")
+        theory = Array("theory", theoryArr, mark="Theory", mode="fill")
+        L = Array("L", Lmat, mark="Stat errors (cholesky)", mode="fill")
         chi2 = Chi2("chi2")
         (data, theory, L) >> chi2
         if duplicate:
@@ -99,8 +99,8 @@ def test_Chi2CNPStat_v01(debug_graph, testname):
     theorya = dataa + offset
 
     with Graph(close_on_exit=True, debug=debug_graph) as graph:
-        data = Array("data", dataa, mark="Data")
-        theory = Array("theory", theorya, mark="Theory")
+        data = Array("data", dataa, mark="Data", mode="fill")
+        theory = Array("theory", theorya, mark="Theory", mode="fill")
 
         cnp = CNPStat(name="cnp", label="CNP stat. uncertainty")
 
@@ -125,8 +125,8 @@ def test_Chi2CNPStat_v01(mode: str | None, debug_graph, testname):
     theorya = dataa + offset
 
     with Graph(close_on_exit=True, debug=debug_graph) as graph:
-        data = Array("data", dataa, mark="Data")
-        theory = Array("theory", theorya, mark="Theory")
+        data = Array("data", dataa, mark="Data", mode="fill")
+        theory = Array("theory", theorya, mark="Theory", mode="fill")
 
         if mode:
             cnp = CNPStat(name="cnp", mode=mode, label=f"CNP stat. {mode}")

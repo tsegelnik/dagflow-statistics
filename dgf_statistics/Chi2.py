@@ -96,6 +96,9 @@ class Chi2(ManyToOneNode):
         return self._matrix_is_lower
 
     def _function_1d(self) -> None:
+        for callback in self._input_nodes_callbacks:
+            callback()
+
         ret = self._output_data
         ret[0] = 0.0
 
@@ -103,6 +106,9 @@ class Chi2(ManyToOneNode):
             _chi2_1d_add(data, theory, errors, ret)
 
     def _function_2d(self) -> None:
+        for callback in self._input_nodes_callbacks:
+            callback()
+
         buffer = self._buffer
         ret = 0.0
         for data, theory, errors in self._triplets_tuple:
