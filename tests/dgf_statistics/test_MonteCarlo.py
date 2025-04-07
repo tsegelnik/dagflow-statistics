@@ -80,8 +80,8 @@ def test_empty_generator(mcmode, debug_graph):
     L = cholesky(inV)
 
     with Graph(close_on_exit=True, debug=debug_graph) as graph:
-        mcdata = Array("data", data)
-        mc_error = Array("error", L if mcmode == "covariance" else diag(L))
+        mcdata = Array("data", data, mode="fill")
+        mc_error = Array("error", L if mcmode == "covariance" else diag(L), mode="fill")
 
         toymc0 = MonteCarlo(name="MonteCarlo", mode=mcmode)
         toymc1 = MonteCarlo(name="MonteCarlo", mode=mcmode)
@@ -139,8 +139,8 @@ class MCTestData:
         self.err_stat = self.err_stat2**0.5
 
         self.edges = arange(self.data.size + 1, dtype="d")
-        edges = Array("edges", self.edges).outputs[0]
-        self.hist = Array("hist", self.data, edges=[edges])
+        edges = Array("edges", self.edges, mode="fill").outputs[0]
+        self.hist = Array("hist", self.data, edges=[edges], mode="fill")
 
         if mctype == "covariance":
             self.prepare_corrmatrix()
@@ -150,7 +150,7 @@ class MCTestData:
 
     def prepare_outputs(self):
         if self.mctype == "normal":
-            self.output_err = Array("errors", self.err_stat)
+            self.output_err = Array("errors", self.err_stat, mode="fill")
             self.outputs = (self.hist, self.output_err)
         elif self.mctype == "covariance":
             self.outputs = (self.hist, self.output_L)
@@ -173,7 +173,7 @@ class MCTestData:
         self.covmat_full = diag(self.err_stat2) + self.covmat_syst
         self.covmat_L = cholesky(self.covmat_full)
         self.covmat_L_inv = inv(self.covmat_L)
-        self.output_L = Array("L", self.covmat_L)
+        self.output_L = Array("L", self.covmat_L, mode="fill")
 
     def set_mc(self, mcobject, mcoutput):
         self.mcobject = mcobject

@@ -68,9 +68,9 @@ def test_IMinuitMinimizer(corr, mu, sigma, mu_limits, mode, testname):
     sigma_fit = sigma * 1.5
     with Graph(close_on_exit=True) as graph:
         # setting of true parameters
-        Mu0 = Array("mu 0", [mu])
-        Sigma0 = Array("sigma 0", [sigma])
-        X = Array("x", x)
+        Mu0 = Array("mu 0", [mu], mode="fill")
+        Sigma0 = Array("sigma 0", [sigma], mode="fill")
+        X = Array("x", x, mode="fill")
 
         # build input data for the MC simulation
         pdf0 = Model("normal pdf for MC")
@@ -95,8 +95,8 @@ def test_IMinuitMinimizer(corr, mu, sigma, mu_limits, mode, testname):
             correlation=[[1, -0.95], [-0.95, 1]] if corr else None,
         )
         MuFit, SigmaFit = pars.outputs()
-        # MuFit = Array("mu fit", [mufit])
-        # SigmaFit = Array("sigma fit", [sigmafit])
+        # MuFit = Array("mu fit", [mufit], mode="fill")
+        # SigmaFit = Array("sigma fit", [sigmafit], mode="fill")
         pdf_fit = Model("normal pdf for the Model")
         X >> pdf_fit
         MuFit >> pdf_fit("mu")
