@@ -146,7 +146,7 @@ class MonteCarlo(BlockToOneNode):
         **kwargs,
     ):
         if not _baseclass:
-            return super().__new__(cls, *args, **kwargs)
+            return super().__new__(cls, *args)
         if mode in MonteCarloLocModes:
             return MonteCarloLoc(
                 name,
