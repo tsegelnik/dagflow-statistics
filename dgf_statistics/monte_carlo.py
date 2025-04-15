@@ -205,9 +205,9 @@ class MonteCarlo(BlockToOneNode):
 
     def next_sample(self) -> None:
         self.unfreeze()
-        self.touch(force_computation=True)
-        # We need to set the flag frozen manually
-        self.fd.frozen = True
+        self.taint()
+        self.touch()
+        self.freeze()
 
     def reset(self) -> None:
         self._function_asimov()
