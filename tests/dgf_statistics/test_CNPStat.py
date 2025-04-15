@@ -4,7 +4,7 @@ from pytest import mark
 from dagflow.core.graph import Graph
 from dagflow.lib.common import Array
 from dagflow.plot.graphviz import savegraph
-from dgf_statistics.CNPStat import CNPStat
+from dgf_statistics import CNPStat
 
 
 def test_Chi2CNPStat_v01(debug_graph, testname):

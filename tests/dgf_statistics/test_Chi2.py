@@ -7,7 +7,7 @@ from pytest import mark
 from dagflow.core.graph import Graph
 from dagflow.lib.common import Array
 from dagflow.plot.graphviz import savegraph
-from dgf_statistics.Chi2 import Chi2
+from dgf_statistics import Chi2
 
 
 def test_Chi2_01(debug_graph, testname):

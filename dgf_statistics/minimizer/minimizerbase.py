@@ -8,7 +8,7 @@ from dagflow.parameters import Parameter
 from dagflow.tools.logger import Logger, get_logger
 
 from .fitresult import FitResult
-from .Minimizable import Minimizable
+from .minimizable import Minimizable
 
 # if we cannot import runtime_error from root we use DagflowError to avoid any exception capture,
 # i.e., if CppRuntimeError==DagflowError, the exception will be not raised

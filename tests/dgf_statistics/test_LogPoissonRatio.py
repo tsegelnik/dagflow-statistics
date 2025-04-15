@@ -6,7 +6,7 @@ from scipy.special import gammaln
 from dagflow.core.graph import Graph
 from dagflow.lib.common import Array
 from dagflow.plot.graphviz import savegraph
-from dgf_statistics.LogPoissonRatio import LogPoissonRatio
+from dgf_statistics import LogPoissonRatio
 
 
 def test_LogPoissonRatio_01(debug_graph, testname):

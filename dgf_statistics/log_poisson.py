@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING
 
 from dagflow.core.meta_node import MetaNode
 
-from dgf_statistics.LogPoissonConst import LogPoissonConst
-from dgf_statistics.LogPoissonMain import LogPoissonMain
+from dgf_statistics.log_poisson_const import LogPoissonConst
+from dgf_statistics.log_poisson_main import LogPoissonMain
 
 if TYPE_CHECKING:
     from collections.abc import Mapping

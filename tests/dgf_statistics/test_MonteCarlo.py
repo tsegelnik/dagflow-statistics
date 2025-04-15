@@ -11,7 +11,7 @@ from dagflow.lib.common import Array
 from dagflow.plot.graphviz import savegraph
 from dagflow.plot.plot import add_colorbar, closefig, plot_array_1d, plot_auto, savefig
 
-from dgf_statistics.MonteCarlo import MonteCarlo
+from dgf_statistics import MonteCarlo
 
 
 @mark.parametrize("scale", [0.1, 10000.0])
