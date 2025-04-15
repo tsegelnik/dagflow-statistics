@@ -207,12 +207,14 @@ class MonteCarlo(BlockToOneNode):
         self.unfreeze()
         self.taint()
         self.touch()
-        self.freeze()
+        # freeze() is called within function
 
     def reset(self) -> None:
+        self.unfreeze()
+        self.taint()
         self._function_asimov()
-        # We need to set the flag frozen manually
-        self.fd.frozen = True
+        self.fd.tainted = False
+        # freeze() is called within Asimov function
 
     @staticmethod
     def _create_generator() -> Generator:
