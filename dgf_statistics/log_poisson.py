@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING
 
 from dagflow.core.meta_node import MetaNode
 
-from dgf_statistics.LogPoissonConst import LogPoissonConst
-from dgf_statistics.LogPoissonMain import LogPoissonMain
+from dgf_statistics.log_poisson_const import LogPoissonConst
+from dgf_statistics.log_poisson_main import LogPoissonMain
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -64,7 +64,7 @@ class LogPoisson(MetaNode):
 
         self._add_node(
             logPoisson,
-            kw_inputs=["theory", "data"],
+            kw_inputs=["data", "theory"],
             kw_outputs=["poisson"],
             merge_inputs=["data"],
             missing_inputs=True,

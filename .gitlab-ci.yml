@@ -14,6 +14,7 @@ tests:
     - source venv/bin/activate
     - git submodule sync
     - git submodule update --init --recursive --depth=1 -- submodules/dag-flow
+    - python3 -m pip install --upgrade pip
     - python3 -m pip install $(find . -name requirements.txt -type f -printf "-r %p\n")
     - mkdir output
     - coverage run --source=. --omit=submodules/* -m pytest

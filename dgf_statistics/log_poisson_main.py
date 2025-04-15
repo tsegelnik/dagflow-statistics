@@ -19,8 +19,8 @@ if TYPE_CHECKING:
 
 @njit(cache=True)
 def _poisson_main_add(
-    theory: NDArray[double],
     data: NDArray[double],
+    theory: NDArray[double],
     poisson: NDArray[double],
 ) -> None:
     r"""$\sum (theory_i - data_i * log(theory_i))$"""
@@ -38,8 +38,8 @@ class LogPoissonMain(Node):
 
     inputs:
         `const`: $\sum \ln data_{i}$ (1 element)
-        `i`: theory $\mu$ (N elements)
-        `i+1`: data $x$ (N elements)
+        `i`: data $x$ (N elements)
+        `i+1`: theory $\mu$ (N elements)
 
     outputs:
         `poisson`: $\ln Poisson$ (1 element)
@@ -49,10 +49,10 @@ class LogPoissonMain(Node):
     .. note:: To prepair a `const` input use the `LogPoissonConst`-node.
     """
 
-    __slots__ = ("_theory", "_data", "_const", "_poisson")
+    __slots__ = ("_data", "_theory", "_const", "_poisson")
 
-    _theory: Input
     _data: Input
+    _theory: Input
     _const: Input
     _poisson: Output
 
@@ -68,8 +68,8 @@ class LogPoissonMain(Node):
                 #        "axis": "",
             }
         )
-        self._theory = self._add_input("theory")  # input: 0
-        self._data = self._add_input("data")  # input: 1
+        self._data = self._add_input("data")  # input: 0
+        self._theory = self._add_input("theory")  # input: 1
         self._const = self._add_input("const", positional=False)  # input
         self._poisson = self._add_output("poisson")  # output: 0
 
