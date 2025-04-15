@@ -64,7 +64,7 @@ class LogPoisson(MetaNode):
 
         self._add_node(
             logPoisson,
-            kw_inputs=["theory", "data"],
+            kw_inputs=["data", "theory"],
             kw_outputs=["poisson"],
             merge_inputs=["data"],
             missing_inputs=True,
