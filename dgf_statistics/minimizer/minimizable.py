@@ -72,12 +72,30 @@ class Minimizable:
         return self._statistic.data[0]
 
     def _function_verbose(self, values: "NDArray") -> float:
+        n_modified_pars = 0
+        n_pars = len(self._parameters)
         for param, val in zip(self._parameters, values):
+            if param.value!=val:
+                n_modified_pars+=1
             param.value = val
-            self._logger.info(f"Parameter(name='{param.output.node.name}', value={val})")
+            self._logger.info(str(param))
+
         self._ncall += 1
+
         ret = self._statistic.data[0]
-        self._logger.info(f"Statistic({self._ncall}) = {ret}")
+
+        if n_modified_pars<n_pars:
+            calctype = ": derivative"
+        else:
+            if self._ncall==1:
+                calctype = n_pars>1 and ": step/hessian" or ""
+            else:
+                calctype = n_pars>2 and ": step/hessian" or ""
+
+        self._logger.info(f"Modified parameters {n_modified_pars}/{n_pars}{calctype}")
+        self._logger.info(f"Statistic {self._ncall}: {ret}")
+        self._logger.info("")
+
         return ret
 
     def __call__(self, values: "NDArray") -> float:

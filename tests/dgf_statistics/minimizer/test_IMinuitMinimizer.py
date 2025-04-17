@@ -13,13 +13,11 @@ from dagflow.lib.common import Array
 from dagflow.parameters import Parameters
 from dagflow.plot.graphviz import savegraph
 from dagflow.plot.plot import plot_array_1d
-
 from dgf_statistics import Chi2, CNPStat, MonteCarlo
 from dgf_statistics.minimizer.iminuitminimizer import IMinuitMinimizer
 
 _NevScale = 10000
 _Background = 100
-_verbose = False
 
 
 class Model(OneToOneNode):
@@ -35,12 +33,15 @@ class Model(OneToOneNode):
     def _function(self):
         mu = self._mu.data[0]
         sigma = self._sigma.data[0]
-        for indata, outdata in zip(self.inputs.iter_data(), self.outputs.iter_data_unsafe()):
+        for indata, outdata in zip(
+            self.inputs.iter_data(), self.outputs.iter_data_unsafe()
+        ):
             outdata[:] = _NevScale * norm.pdf(indata[:], loc=mu, scale=sigma)
 
 
 class Shift(OneToOneNode):
-    """The node to shift the data by Y axis to avoid negative bins in the MC data"""
+    """The node to shift the data by Y axis to avoid negative bins in the MC
+    data."""
 
     __slots__ = "_shift"
     _shift: float
@@ -50,14 +51,25 @@ class Shift(OneToOneNode):
         self._shift = shift
 
     def _function(self):
-        for indata, outdata in zip(self.inputs.iter_data(), self.outputs.iter_data_unsafe()):
+        for indata, outdata in zip(
+            self.inputs.iter_data(), self.outputs.iter_data_unsafe()
+        ):
             outdata[:] = self._shift + indata[:]
 
 
 @mark.parametrize("corr", (False, True))
-@mark.parametrize("mu,sigma,mu_limits", ((-1.531654, 0.567543, None), (2.097123, 1.503321, (-5, None)), (-1.531654, 0.567543, (None, 5)), (2.097123, 1.503321, (-5, 5))))
+@mark.parametrize(
+    "mu,sigma,mu_limits",
+    (
+        (-1.531654, 0.567543, None),
+        (2.097123, 1.503321, (-5, None)),
+        (-1.531654, 0.567543, (None, 5)),
+        (2.097123, 1.503321, (-5, 5)),
+    ),
+)
 @mark.parametrize("mode", ("asimov", "normal-stats"))
-def test_IMinuitMinimizer(corr, mu, sigma, mu_limits, mode, testname):
+@mark.parametrize("verbose", (False, True))
+def test_IMinuitMinimizer(corr, mu, sigma, mu_limits, mode, verbose: bool, testname):
     size = 201
     x = linspace(-10, 10, size)
 
@@ -126,7 +138,7 @@ def test_IMinuitMinimizer(corr, mu, sigma, mu_limits, mode, testname):
         statistic=chi.outputs[0],
         parameters={"mu": par_mu, "sigma": par_sigma},
         limits=limits,
-        verbose=_verbose,
+        verbose=verbose,
     )
     res = minimizer.fit()
 
@@ -145,9 +157,15 @@ def test_IMinuitMinimizer(corr, mu, sigma, mu_limits, mode, testname):
     )
 
     atol = 2.0 / sqrt(_NevScale)
-    assert allclose(res["x"], [mu, sigma], rtol=0, atol=atol if mode == "normal-stats" else 2e-5)
-    assert allclose(res["covariance"], minimizer.calculate_covariance(), rtol=0, atol=1e-8)
-    assert all(res["errorsdict"][key] == res["errors"][i] for i, key in enumerate(names))
+    assert allclose(
+        res["x"], [mu, sigma], rtol=0, atol=atol if mode == "normal-stats" else 2e-5
+    )
+    assert allclose(
+        res["covariance"], minimizer.calculate_covariance(), rtol=0, atol=1e-8
+    )
+    assert all(
+        res["errorsdict"][key] == res["errors"][i] for i, key in enumerate(names)
+    )
 
     # errors checks
     errors = minimizer.profile_errors()
