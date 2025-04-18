@@ -100,7 +100,7 @@ def test_IMinuitMinimizer(corr, mu, sigma, mu_limits, mode, verbose: bool, testn
         # build a model to fit exp data
         pars = Parameters.from_numbers(
             [mu_fit, sigma_fit],
-            names=["mu fit", "sigma fit"],
+            names=["mu_fit", "sigma_fit"],
             sigma=[1, 1],
             correlation=[[1, -0.95], [-0.95, 1]] if corr else None,
         )

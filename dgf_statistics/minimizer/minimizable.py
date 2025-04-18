@@ -74,11 +74,17 @@ class Minimizable:
     def _function_verbose(self, values: "NDArray") -> float:
         n_modified_pars = 0
         n_pars = len(self._parameters)
-        for param, val in zip(self._parameters, values):
-            if param.value!=val:
+        modified_pars = []
+        modified_pars_numbers = []
+        for i, (param, val) in enumerate(zip(self._parameters, values)):
+            if (param_modified:=(param.value!=val)):
                 n_modified_pars+=1
+
+                if n_modified_pars<3:
+                    modified_pars.append(param.name)
+                    modified_pars_numbers.append(i)
             param.value = val
-            self._logger.info(str(param))
+            self._logger.info(f"{param!s}{param_modified and ' *' or ''}")
 
         self._ncall += 1
 
@@ -92,7 +98,14 @@ class Minimizable:
             else:
                 calctype = n_pars>2 and ": step/hessian" or ""
 
+        modified_pars_numbers = list(map(str, modified_pars_numbers))
+        if n_modified_pars>len(modified_pars):
+            modified_pars.append("...")
+            modified_pars_numbers.append("...")
+
         self._logger.info(f"Modified parameters {n_modified_pars}/{n_pars}{calctype}")
+        self._logger.info(f"Modified parameters: {', '.join(modified_pars)}")
+        self._logger.info(f"Modified parameters: {', '.join(modified_pars_numbers)}")
         self._logger.info(f"Statistic {self._ncall}: {ret}")
         self._logger.info("")
 
